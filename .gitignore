@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node modules (if you add them later)
+node_modules/
+
+# Editor directories
+.vscode/
+.idea/
+
+# Archived files (we don't need these in Git)
+archived files/

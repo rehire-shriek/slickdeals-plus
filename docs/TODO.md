@@ -1,0 +1,232 @@
+# Slickdeals+ TODO
+
+Active task tracking for bugs, improvements, and feature requests.
+
+**Last Updated:** 2025-01-09  
+**Current Version:** 32.2.0
+
+---
+
+## 🔴 Critical (Blocking Issues)
+
+*None currently*
+
+---
+
+## 🟡 Known Issues (Non-Blocking)
+
+### Console Spam from Slickdeals Ads
+- **Status:** Won't fix (not our code)
+- **Description:** `postMessage: about:blank` errors flood console from ad iframes
+- **Workaround:** Filter console with `-postMessage -about:blank`
+- **Notes:** 3 `about:blank` iframes detected on page load
+
+### Debug `dump()` Output Not Visible
+- **Status:** Low priority
+- **Description:** `window.sdPlus.dump()` logs to Tampermonkey sandbox console, not visible in page console
+- **Workaround:** Use `window.sdPlus.settings.getSettings()` instead
+- **Potential Fix:** Return object instead of console.log, or use `unsafeWindow.console`
+
+---
+
+## 🔥 Performance Fixes (From v32.2.0 Audit)
+
+### HIGH PRIORITY
+
+#### Observer Echo Loop (Self-Trigger Bug)
+- **Status:** TODO
+- **Severity:** Medium (was marked High in audit, but existing guards reduce impact)
+- **Description:** MutationObserver watches `class` attribute changes, but our own `processDealCard` adds classes (`highlightRating`, `isGold`, etc.), causing unnecessary observer callbacks.
+- **Current Behavior:** Observer fires → queries unprocessed cards → finds 0 → does nothing (wasteful but not catastrophic)
+- **Impact:** Unnecessary DOM queries on every card processed (~100+ queries on page load)
+- **Solution:** Add processing lock to skip mutations during our own processing
+```javascript
+let isProcessing = false;
+// In observer: if (isProcessing) return;
+// In processAllCards: isProcessing = true; ... isProcessing = false;
+```
+
+#### Delta Processing (Stop Full DOM Scans)
+- **Status:** TODO
+- **Severity:** High
+- **Description:** `reprocessUnprocessed()` runs `querySelectorAll` on entire document every time
+- **Current Code:**
+```javascript
+document.querySelectorAll('.dealCardV3:not([data-sdp-processed]), ...')
+```
+- **Impact:** O(n) scan on every mutation. With 500 deals, this causes layout thrashing.
+- **Solution:** Process only `addedNodes` from MutationObserver instead of rescanning everything
+```javascript
+mutations.forEach(m => {
+    m.addedNodes.forEach(node => {
+        if (node.matches?.(SELECTORS.dealCard)) processDealCard(node);
+        node.querySelectorAll?.(SELECTORS.dealCard).forEach(processDealCard);
+    });
+});
+```
+
+### MEDIUM PRIORITY
+
+#### Consolidate Storage Strategy
+- **Status:** TODO
+- **Description:** Currently writes to BOTH `GM_setValue` AND `localStorage`, reads GM first with localStorage fallback
+- **Problem:** "Zombie Settings" - clearing one storage doesn't clear the other, no versioning to know which is authoritative
+- **Solution:** 
+  - Make `GM_setValue` the single source of truth
+  - Use `localStorage` only for one-time migration (read old settings, save to GM, delete from localStorage)
+  - Add timestamp to settings object for conflict resolution if needed
+
+#### Improve parsePrice Regex
+- **Status:** TODO
+- **Description:** Current regex assumes specific currency formatting
+- **Current Code:**
+```javascript
+const match = text.match(/[\d,]+(\.\d{2})?/);
+return match ? parseFloat(match[0].replace(/,/g, '')) : NaN;
+```
+- **Problem:** Fragile with edge cases like "$1,200" or "€19,99" (European format)
+- **Solution:** Clean string before parsing
+```javascript
+const cleaned = text.replace(/[^0-9.]/g, '');
+return parseFloat(cleaned) || NaN;
+```
+
+### LOW PRIORITY
+
+#### Gate Debug Exposure
+- **Status:** TODO
+- **Description:** `unsafeWindow.sdPlus` exposes internal API to host page by default
+- **Risk:** Low (Slickdeals is not hostile), but violates best practices
+- **Solution:** Only expose when debug mode is enabled
+```javascript
+if (localStorage.getItem('sdPlus_debug') === 'true') {
+    unsafeWindow.sdPlus = debugInterface;
+}
+```
+
+#### Evaluate IntersectionObserver for Lazy-Load
+- **Status:** TODO (Research)
+- **Description:** Current approach uses scroll listener + hardcoded timeouts (500ms, 1500ms, 3000ms)
+- **Consideration:** IntersectionObserver could be cleaner for detecting when user scrolls to new content
+- **Caveat:** SD uses "batch reveal" not true infinite scroll - need to verify IO would help
+- **Decision:** Research only, don't over-engineer. Current solution works.
+
+---
+
+## 🟢 Planned Improvements
+
+### Short Term (Next Release)
+
+- [ ] **Add visible loading indicator** - Show spinner/text while deals are being processed on page load
+- [ ] **Filter count in menu badge** - Show "X deals hidden" count
+- [ ] **Improve "Deals You May Have Missed" handling** - Consider separate processing or exclusion option
+
+### Medium Term
+
+- [ ] **Filter presets** - Save/load named filter combinations (e.g., "Gaming Deals", "Free Stuff")
+- [ ] **Per-category settings** - Different filters for different Slickdeals categories
+- [ ] **Keyboard shortcuts** - Quick toggle for common filters
+- [ ] **Dark mode support** - Detect/respect system dark mode preference
+
+### Long Term (Feature Requests)
+
+- [ ] **Deal alerts** - Browser notifications when deals match criteria
+- [ ] **Price history tracking** - Store price changes over time, show lowest recorded
+- [ ] **Bulk actions** - Select multiple deals to hide/save
+- [ ] **Cloud sync** - Sync settings across browsers (would need backend)
+- [ ] **Deal notes** - Add personal notes to deals
+
+---
+
+## 🔧 Technical Debt
+
+- [ ] **Reduce observer scope** - Current observer watches subtree + attributes, may be overkill
+  - *Note: Related to "Observer Echo Loop" fix above*
+- [ ] **Consolidate storage access** - Create unified storage module with consistent error handling
+  - *Note: Related to "Consolidate Storage Strategy" above*
+- [ ] **Add unit tests** - Test filter logic, settings validation separately
+- [ ] **Minified production build** - Current file is ~1200 lines, could minify for performance
+- [ ] **Improve selector resilience** - Add fallback chains and warnings when primary selectors fail
+
+---
+
+## ❌ Won't Do (Audit Items Rejected)
+
+### Remote Config for Selectors
+- **Auditor Suggestion:** Fetch selectors from remote JSON (GitHub Gist) to allow hot-fixes
+- **Why Rejected:**
+  - Network dependency (if GitHub down, script fails)
+  - Security risk (supply chain attack vector)
+  - Adds 100-500ms latency to init
+  - Over-engineering for our use case
+- **Alternative:** Use fallback selector chains + defensive logging
+
+### Toast Memory Leak Fix
+- **Auditor Suggestion:** Toasts could accumulate if browser throttles timers
+- **Why Rejected:**
+  - Already capped queue at 5 items
+  - Toasts are tiny DOM elements
+  - Unlikely to cause real issues in practice
+
+---
+
+## ✅ Completed (Move to CHANGELOG when released)
+
+### v32.2.0 (2025-01-09)
+- [x] Fix async error handling in `safeExecute`
+- [x] Fix settings not applying on page load
+- [x] Fix 308 deals never processed (lazy-load issue)
+- [x] Add `unsafeWindow` for console access
+- [x] Add delayed reprocessing (500ms, 1500ms, 3000ms)
+- [x] Add scroll listener for lazy-loaded content
+- [x] Dual storage (GM + localStorage)
+
+---
+
+## 📝 Notes & Ideas
+
+### Slickdeals DOM Observations
+- Deals lazy-load in batches, not triggered by standard MutationObserver on feed
+- "Deals You May Have Missed" section uses same card classes but different container
+- Vote counts may load after initial card render (potential timing issue)
+
+### Potential Selector Updates Needed
+If Slickdeals updates their site, check these selectors:
+```javascript
+navBar: 'ul.slickdealsHeader__linkSection'
+dealFeed: 'ul.frontpageGrid, ul.cmsDealFeed__dealContainer'
+dealCard: '.dealCardV3, .dealCard, [data-threadid]'
+```
+
+### Ideas Parking Lot
+- Integration with CamelCamelCamel for price history?
+- Export filtered deals to CSV?
+- "Deal score" combining votes + discount + age?
+
+---
+
+## 📊 Audit Summary (2025-01-09)
+
+External technical review conducted. Key findings:
+
+| Item | Auditor Severity | Our Assessment | Action |
+|------|------------------|----------------|--------|
+| Observer Echo Loop | High | Medium | Fix in v32.3.0 |
+| Full DOM Rescans | High | High | Fix in v32.3.0 |
+| Dual Storage Issue | Medium | Medium | Fix in v32.3.0 |
+| Remote Config | Recommended | Over-engineering | Won't Do |
+| unsafeWindow Exposure | Medium | Low | Fix (low priority) |
+| IntersectionObserver | Recommended | Research | Evaluate |
+| parsePrice Regex | Low | Low | Fix in v32.3.0 |
+| Toast Memory Leak | Low | Non-issue | Won't Do |
+
+**Next version (v32.3.0) focus:** Performance fixes from audit
+
+---
+
+## How to Use This File
+
+1. **Adding items:** Put new issues/ideas in appropriate section with checkbox `- [ ]`
+2. **In progress:** Add notes below the item
+3. **Completed:** Check the box `- [x]` and move to "Completed" section
+4. **Released:** Move from "Completed" to CHANGELOG.md with version number
