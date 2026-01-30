@@ -11,6 +11,69 @@ Format: `[Version] - Date`
 
 ---
 
+## [32.3.6] - 2025-01-30
+
+### Added
+- **Include Keywords filter** - New textarea to show only deals matching any specified keyword (OR logic)
+- Works alongside Block Keywords: deals must match include AND not match block
+
+### Fixed
+- **Include Keywords live update** - Filter now applies immediately as you type (was requiring page reload)
+
+---
+
+## [32.3.5] - 2025-01-30
+
+### Added
+- **Hidden deals badge** - Menu button now shows "X hidden" count instead of filter count
+- Provides real-time feedback on how many deals are being filtered
+
+---
+
+## [32.3.4] - 2025-01-30
+
+### Fixed
+- **Reprocess race condition** - Added retry mechanism with coalescing when processing lock is active
+- Prevents skipped reprocessing calls during initial page load
+
+---
+
+## [32.3.3] - 2025-01-30
+
+### Added
+- **Console Cleaner** - Suppresses ad iframe `postMessage` spam from console
+- Auto-disables when debug mode is ON to show all errors during debugging
+
+---
+
+## [32.3.2] - 2025-01-30
+
+### Added
+- **Comprehensive diagnostic report** via Debug button and `window.sdPlus.dump()`
+- Auto-diagnostic runs on page load when debug mode is enabled
+- Shows: version, settings, DOM state, UI state, active filters
+
+---
+
+## [32.3.1] - 2025-01-30
+
+### Fixed
+- **Debug logging visibility** - Changed `console.debug` to `console.log` (was being filtered by browser)
+- Removed corrupted emoji characters from debug output
+
+---
+
+## [32.3.0] - 2025-01-14
+
+### Fixed
+- **Observer Echo Loop** - Added processing lock to prevent unnecessary MutationObserver callbacks
+- **Dual storage conflicts** - Fixed "zombie settings" issue where clearing one storage didn't clear the other
+
+### Performance
+- **Delta processing** - Observer now only processes newly added nodes instead of rescanning entire DOM
+
+---
+
 ## [32.2.0] - 2025-01-09
 
 ### Fixed

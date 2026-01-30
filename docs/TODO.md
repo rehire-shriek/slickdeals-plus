@@ -2,8 +2,8 @@
 
 Active task tracking for bugs, improvements, and feature requests.
 
-**Last Updated:** 2025-01-09  
-**Current Version:** 32.2.0
+**Last Updated:** 2025-01-30  
+**Current Version:** 32.3.6
 
 ---
 
@@ -34,36 +34,12 @@ Active task tracking for bugs, improvements, and feature requests.
 ### HIGH PRIORITY
 
 #### Observer Echo Loop (Self-Trigger Bug)
-- **Status:** TODO
-- **Severity:** Medium (was marked High in audit, but existing guards reduce impact)
+- **Status:** FIXED (v32.3.0)
 - **Description:** MutationObserver watches `class` attribute changes, but our own `processDealCard` adds classes (`highlightRating`, `isGold`, etc.), causing unnecessary observer callbacks.
-- **Current Behavior:** Observer fires → queries unprocessed cards → finds 0 → does nothing (wasteful but not catastrophic)
-- **Impact:** Unnecessary DOM queries on every card processed (~100+ queries on page load)
-- **Solution:** Add processing lock to skip mutations during our own processing
-```javascript
-let isProcessing = false;
-// In observer: if (isProcessing) return;
-// In processAllCards: isProcessing = true; ... isProcessing = false;
-```
 
 #### Delta Processing (Stop Full DOM Scans)
-- **Status:** TODO
-- **Severity:** High
-- **Description:** `reprocessUnprocessed()` runs `querySelectorAll` on entire document every time
-- **Current Code:**
-```javascript
-document.querySelectorAll('.dealCardV3:not([data-sdp-processed]), ...')
-```
-- **Impact:** O(n) scan on every mutation. With 500 deals, this causes layout thrashing.
-- **Solution:** Process only `addedNodes` from MutationObserver instead of rescanning everything
-```javascript
-mutations.forEach(m => {
-    m.addedNodes.forEach(node => {
-        if (node.matches?.(SELECTORS.dealCard)) processDealCard(node);
-        node.querySelectorAll?.(SELECTORS.dealCard).forEach(processDealCard);
-    });
-});
-```
+- **Status:** FIXED (v32.3.0)
+- **Description:** `reprocessUnprocessed()` processes only new nodes from mutations instead of rescanning entire DOM.
 
 ### MEDIUM PRIORITY
 
@@ -117,8 +93,9 @@ if (localStorage.getItem('sdPlus_debug') === 'true') {
 
 ### Short Term (Next Release)
 
+- [x] **Hidden deals badge** - Show "X hidden" count (v32.3.5)
 - [ ] **Add visible loading indicator** - Show spinner/text while deals are being processed on page load
-- [ ] **Filter count in menu badge** - Show "X deals hidden" count
+- [ ] **Cache constant selectors** - Destructure SELECTORS at module scope to reduce property lookups
 - [ ] **Improve "Deals You May Have Missed" handling** - Consider separate processing or exclusion option
 
 ### Medium Term
@@ -140,12 +117,13 @@ if (localStorage.getItem('sdPlus_debug') === 'true') {
 
 ## 🔧 Technical Debt
 
-- [ ] **Reduce observer scope** - Current observer watches subtree + attributes, may be overkill
+- [ ] **Reduce observer scope** - Test removing `attributes: true` from MutationObserver if not needed
   - *Note: Related to "Observer Echo Loop" fix above*
+- [ ] **Consolidate debounce timers** - Document timing behavior of multiple debounces
 - [ ] **Consolidate storage access** - Create unified storage module with consistent error handling
   - *Note: Related to "Consolidate Storage Strategy" above*
 - [ ] **Add unit tests** - Test filter logic, settings validation separately
-- [ ] **Minified production build** - Current file is ~1200 lines, could minify for performance
+- [ ] **Minified production build** - Current file is ~1450 lines, could minify for performance
 - [ ] **Improve selector resilience** - Add fallback chains and warnings when primary selectors fail
 
 ---
@@ -171,6 +149,14 @@ if (localStorage.getItem('sdPlus_debug') === 'true') {
 ---
 
 ## ✅ Completed (Move to CHANGELOG when released)
+
+### v32.3.6 (2025-01-30)\n- [x] Include Keywords filter (show only deals matching keywords, OR logic)\n\n### v32.3.5 (2025-01-30)\n- [x] Hidden deals badge (shows \"X hidden\" count in menu)\n\n### v32.3.4 (2025-01-30)
+- [x] Fix reprocess race condition (retry mechanism with coalescing)
+
+### v32.3.0 (2025-01-14)
+- [x] Fix Observer Echo Loop (processing lock)
+- [x] Implement Delta Processing (process only added nodes)
+- [x] Fix dual storage strategy conflicts
 
 ### v32.2.0 (2025-01-09)
 - [x] Fix async error handling in `safeExecute`
