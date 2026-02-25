@@ -119,6 +119,8 @@ if (localStorage.getItem('sdPlus_debug') === 'true') {
 ## 🔧 Technical Debt
 
 - [x] **Reduce observer scope** - Removed `attributes: true` from MutationObserver (v32.3.7)
+- [ ] **Data-attribute for debounced fields** - Replace hardcoded `['excludeKeywords', 'includeKeywords', 'minPrice', 'maxPrice']` skip-list in change handler with a `data-sdp-debounce="true"` attribute on elements, so new debounced fields are automatically excluded without updating the array
+  - *Source: Loom audit v32.3.7 (Mild Preference)*
 - [ ] **Consolidate debounce timers** - Document timing behavior of multiple debounces
 - [ ] **Consolidate storage access** - Create unified storage module with consistent error handling
   - *Note: Related to "Consolidate Storage Strategy" above*
