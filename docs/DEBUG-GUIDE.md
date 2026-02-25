@@ -114,9 +114,9 @@ Uncaught SyntaxError: Failed to execute 'postMessage' on 'Window': Invalid targe
 
 **Cause:** Slickdeals' ad iframes, NOT this script.
 
-**Mitigation:**
-- Filter console: type `-postMessage -about:blank` in filter box
-- This doesn't affect script functionality
+**Fix (v32.3.3):** Console Cleaner automatically suppresses ad iframe spam.
+- Console Cleaner auto-disables when debug mode is ON (so you see all errors when debugging)
+- If you still see spam with debug mode off, check that you're on v32.3.3+
 
 ---
 
@@ -150,6 +150,19 @@ document.querySelector('ul.slickdealsHeader__linkSection')
 | `sdPlus_settings_v30` | Legacy (auto-migrated) |
 | `sdPlus_settings_v28` | Legacy (auto-migrated) |
 | `sdPlus_debug` | Set to `'true'` to enable debug logging |
+
+---
+
+## Diagnostic Report (v32.3.2+)
+
+Run a full diagnostic dump:
+```javascript
+window.sdPlus.dump()   // Prints version, settings, DOM state, UI state, active filters
+```
+
+**Note:** `dump()` output goes to the Tampermonkey sandbox console. To see it, switch the console context dropdown from "top" to the Tampermonkey context. Alternatively, use `window.sdPlus.settings.getSettings()` which returns the object directly.
+
+**Auto-diagnostic:** When debug mode is enabled, a full diagnostic runs automatically on page load (after a 2-second delay for stability).
 
 ---
 

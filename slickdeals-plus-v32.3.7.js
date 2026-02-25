@@ -1,14 +1,13 @@
 // ==UserScript==
-// @name         Slickdeals+ v32.3.6
+// @name         Slickdeals+ v32.3.7
 // @namespace    V@no
 // @description  Adds a dropdown menu with advanced filtering, highlighting, ad blocking, and price difference display.
 // @match        https://slickdeals.net/*
-// @version      32.3.6
+// @version      32.3.7
 // @license      MIT
 // @run-at       document-idle
 // @grant        GM_setValue
 // @grant        GM_getValue
-// @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
 /*
@@ -19,13 +18,22 @@
  * KNOWN ISSUES:
  * - [x] Console spam from Slickdeals ads (mitigated in v32.3.3 with Console Cleaner)
  * - [ ] dump() output not visible in page console (low priority)
- * 
+ *
  * NEXT UP:
  * - [ ] Add loading indicator while processing deals
- * - [ ] Show "X deals hidden" count in menu badge
  * - [ ] Filter presets (save/load combinations)
  * - [ ] Block ad iframes from loading entirely (prevent zombie ads at source)
- * 
+ *
+ * CHANGELOG v32.3.7:
+ * - [Fix] Observer echo-loop gap — sdpProcessed set before class mutations
+ * - [Fix] parseFloat for decimal price inputs (was parseInt truncating)
+ * - [Fix] Toast queue items preserved when body unavailable
+ * - [Fix] includeKeywords added to debugDump() diagnostic
+ * - [Fix] Debug toggle synced to localStorage on save
+ * - [Fix] Removed broken "Newest" sort option
+ * - [Fix] Simplified observer to childList only (removed attribute watching)
+ * - [Cleanup] Removed dead code: resolveRedirectWithGM, debouncedProcess, HAS_EXPIRED
+ *
  * CHANGELOG v32.3.6:
  * - [Feature] Include Keywords filter - show only deals matching any keyword (OR logic)
  * - Works with Block Keywords: deal must match include AND not match block
@@ -160,7 +168,6 @@
             if (isProcessing || toastQueue.length === 0) return;
             isProcessing = true;
 
-            const { message, type, duration } = toastQueue.shift();
             const container = ensureContainer();
 
             if (!container) {
@@ -171,6 +178,8 @@
                 }
                 return;
             }
+
+            const { message, type, duration } = toastQueue.shift();
 
             try {
                 const toast = document.createElement('div');
@@ -242,7 +251,6 @@
             IS_GOLD: 'isGold',
             HIDE: 'sd-plus-hide',
             HAS_PROMOTED: 'sdp-has-promoted',
-            HAS_EXPIRED: 'sdp-has-expired'
         };
         const DEFAULTS = {
             hidePageClutter: true,
@@ -419,26 +427,7 @@
             }
         }
 
-        function resolveRedirectWithGM(trackingUrl) {
-            return new Promise(resolve => {
-                if (typeof GM_xmlhttpRequest === 'undefined') {
-                    return resolve({ finalUrl: null });
-                }
-                try {
-                    GM_xmlhttpRequest({
-                        method: 'HEAD',
-                        url: trackingUrl,
-                        timeout: 5000,
-                        onload: res => resolve({ finalUrl: res.finalUrl && res.finalUrl !== trackingUrl ? res.finalUrl : null }),
-                        onerror: () => resolve({ finalUrl: null }),
-                        ontimeout: () => resolve({ finalUrl: null })
-                    });
-                } catch {
-                    resolve({ finalUrl: null });
-                }
-            });
-        }
-        return { isTrackingLink, extractDestinationUrl, resolveRedirectWithGM };
+        return { isTrackingLink, extractDestinationUrl };
     })();
 
     // ============================================
@@ -525,6 +514,9 @@
                     localStorage.setItem(STORAGE_KEY, json);
                 } catch { /* localStorage may be blocked */ }
 
+                // Sync debug toggle to localStorage for pre-init access
+                try { localStorage.setItem('sdPlus_debug', String(settings.debugMode)); } catch {}
+
                 log.debug('Settings saved');
             } catch (e) {
                 log.error('Save error:', e);
@@ -546,7 +538,7 @@
                 console.log('='.repeat(60));
                 console.log('[Slickdeals+] DIAGNOSTIC REPORT');
                 console.log('='.repeat(60));
-                console.log('[Slickdeals+] Version:', '32.3.6');
+                console.log('[Slickdeals+] Version:', '32.3.7');
                 console.log('[Slickdeals+] Timestamp:', new Date().toISOString());
                 console.log('[Slickdeals+] URL:', window.location.href);
                 console.log('-'.repeat(60));
@@ -602,7 +594,8 @@
                     if (settings.hidePromoted) filters.push('hidePromoted');
                     if (settings.minPrice) filters.push(`minPrice: $${settings.minPrice}`);
                     if (settings.maxPrice) filters.push(`maxPrice: $${settings.maxPrice}`);
-                    if (settings.excludeKeywords) filters.push(`keywords: "${settings.excludeKeywords}"`);
+                    if (settings.excludeKeywords) filters.push(`excludeKeywords: "${settings.excludeKeywords}"`);
+                    if (settings.includeKeywords) filters.push(`includeKeywords: "${settings.includeKeywords}"`);
                     if (settings.sortBy !== 'default') filters.push(`sortBy: ${settings.sortBy}`);
                     console.log('[Slickdeals+]   Active:', filters.length > 0 ? filters.join(', ') : 'None');
                 }
@@ -647,7 +640,7 @@
                                     <div class="sd-plus-section"><div class="sd-plus-header">Filters & Sort <span class="arrow">&#9660;</span></div><div class="sd-plus-content">
                                         <label class="switch-row"><span>Show Free Only</span><input type="checkbox" data-setting="freeOnly" class="sd-switch-input"><span class="sd-switch-slider"></span></label>
                                         <label class="switch-row"><span>Gold Tier Only</span><input type="checkbox" data-setting="goldTierOnly" class="sd-switch-input"><span class="sd-switch-slider"></span></label>
-                                        <div class="control-group"><span>Sort By:</span><select data-setting="sortBy" class="sd-plus-select"><option value="default">Default</option><option value="date">Newest</option><option value="discount">Discount %</option><option value="rating">Rating</option></select></div>
+                                        <div class="control-group"><span>Sort By:</span><select data-setting="sortBy" class="sd-plus-select"><option value="default">Default</option><option value="discount">Discount %</option><option value="rating">Rating</option></select></div>
                                         <div class="control-group"><span>Price Range ($):</span><div class="range-inputs"><input type="number" data-setting="minPrice" placeholder="Min" class="sd-plus-input-text"><span>-</span><input type="number" data-setting="maxPrice" placeholder="Max" class="sd-plus-input-text"></div></div>
                                         <div class="control-group"><span>Block Keywords:</span><textarea data-setting="excludeKeywords" class="sd-plus-textarea" placeholder="e.g. refurbished, used"></textarea></div>
                                         <div class="control-group"><span>Include Keywords:</span><textarea data-setting="includeKeywords" class="sd-plus-textarea" placeholder="e.g. sunglasses, rayban (show only matching)"></textarea></div>
@@ -745,7 +738,8 @@
                     try {
                         const el = e.target, key = el.dataset.setting;
                         if (!key) return;
-                        let value = el.type === 'checkbox' ? el.checked : (el.type === 'number' ? parseInt(el.value, 10) || 0 : el.value);
+                        if (['excludeKeywords', 'includeKeywords', 'minPrice', 'maxPrice'].includes(key)) return;
+                        let value = el.type === 'checkbox' ? el.checked : (el.type === 'number' ? parseFloat(el.value) || 0 : el.value);
                         if (key.startsWith('color') && !ValidationModule.isValidHexColor(value)) {
                             ToastModule.show('Invalid color', 'warning');
                             return;
@@ -929,7 +923,7 @@
     // ============================================
     function StylesModule(context) {
         const styleSheets = { static: null, dynamic: null };
-        const STATIC_CSS = `#sdPlusToastContainer{pointer-events:none}#sdPlusToastContainer>div{pointer-events:auto}#sdPlusNavMenu{position:relative}.sd-plus-menu-button{cursor:pointer;color:#333;font-weight:bold;padding:6px 10px;background:#fff;border:1px solid #ccc;border-radius:4px;display:inline-flex;align-items:center}.sd-plus-menu-dropdown{display:none}#sdPlusNavMenu.menu-open .sd-plus-menu-dropdown{display:block;position:absolute;top:100%;left:0;width:340px;background:#fff;border:1px solid #ccc;border-radius:8px;z-index:10000;font-family:Arial,sans-serif;font-size:13px;color:#333;text-align:left;box-shadow:0 4px 15px rgba(0,0,0,0.2)}#sdPlusMenuBody{padding:12px;max-height:85vh;overflow-y:auto}.filter-badge{display:inline-block;background:#ff5252;color:#fff;font-size:10px;font-weight:bold;border-radius:10px;padding:2px 6px;margin-left:5px}.filter-active{background:#e8f5e9!important;border-left:3px solid #34C759;padding-left:5px}.sd-plus-clear-btn{background:#FF9800!important;color:#fff}.sd-plus-section{border-bottom:1px solid #eee;margin-bottom:5px;padding-bottom:5px}.sd-plus-header{font-weight:bold;cursor:pointer;padding:8px 5px;background:#f9f9f9;display:flex;justify-content:space-between;border-radius:4px}.sd-plus-header:hover{background:#eee}.sd-plus-section.collapsed .sd-plus-content{display:none}.sd-plus-section.collapsed .arrow{transform:rotate(-90deg)}.sd-plus-content{padding:8px 5px}.switch-row{display:flex;justify-content:space-between;margin-bottom:8px;cursor:pointer;align-items:center}.sd-switch-input{display:none}.sd-switch-slider{position:relative;width:34px;height:18px;background:#ccc;border-radius:20px;transition:.3s}.sd-switch-slider:before{content:"";position:absolute;width:14px;height:14px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.3s}.sd-switch-input:checked+.sd-switch-slider{background:#34C759}.sd-switch-input:checked+.sd-switch-slider:before{transform:translateX(16px)}.control-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.control-group{margin-bottom:10px}.control-group span{display:block;margin-bottom:4px;color:#666;font-weight:500}.sd-plus-input-number{width:50px;padding:4px;border:1px solid #ddd;text-align:center;border-radius:4px}.sd-plus-input-text{width:60px;padding:4px;border:1px solid #ddd;border-radius:4px}.sd-plus-textarea{width:96%;padding:5px;border:1px solid #ddd;border-radius:4px;resize:vertical;min-height:40px;font-family:Arial}.sd-plus-select{padding:4px;border:1px solid #ddd;width:120px;border-radius:4px}.range-inputs{display:flex;gap:8px;align-items:center}.sd-plus-footer{display:flex;gap:5px;margin-top:15px;padding-top:10px;border-top:1px solid #eee}.sd-plus-footer button{flex:1;border:none;padding:8px;border-radius:4px;cursor:pointer;color:#fff;font-weight:bold}#sdPlusResetButton{background:#607d8b}.sd-plus-button-group button{background:#607d8b;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;color:#fff;width:32%}.dealCard.sd-plus-hide{display:none!important}html.hidePageClutter-enabled .redesignFrontpageDesktop{display:block!important;width:96%!important;max-width:none!important;margin:0 auto!important}ul.frontpageGrid,ul.cmsDealFeed__dealContainer{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))!important;gap:20px!important;width:100%!important}.dealCardV3,.dealCard,[data-threadid]{width:auto!important;max-width:none!important;height:100%!important}html:not(.priceFirst-enabled) .dealCard__content,html:not(.priceFirst-enabled) .dealCardV3__mainContent{grid-template-areas:"image image image" "title title title" "price originalPrice fireIcon" "extraInfo extraInfo extraInfo" "store store store"!important;grid-template-rows:auto auto 1.5em 1fr 20px!important}html:not(.priceFirst-enabled).showDiff-enabled .dealCard__content,html:not(.priceFirst-enabled).showDiff-enabled .dealCardV3__mainContent{grid-template-rows:auto auto 3em 1fr 20px!important}html.priceFirst-enabled .dealCard__content,html.priceFirst-enabled .dealCardV3__mainContent{grid-template-areas:"image image image" "price originalPrice fireIcon" "title title title" "extraInfo extraInfo extraInfo" "store store store"!important;grid-template-rows:auto 1.5em auto 1fr 20px!important}html.priceFirst-enabled.showDiff-enabled .dealCard__content,html.priceFirst-enabled.showDiff-enabled .dealCardV3__mainContent{grid-template-rows:auto 3em auto 1fr 20px!important}html.showDiff-enabled .dealCardV3__priceContainer[data-deal-percent]::after,html.showDiff-enabled .dealCard__priceContainer[data-deal-percent]::after{content:"($" attr(data-deal-diff) " | " attr(data-deal-percent) "%)";display:block;width:100%;font-style:italic;margin-top:4px;color:#555;font-size:0.9em}.dealCardV3__priceContainer,.dealCard__priceContainer{display:flex!important;flex-wrap:wrap!important;align-items:baseline}html.hidePageClutter-enabled #sideColumn,html.hidePageClutter-enabled aside.slickdealsSidebar{display:none!important}html.hidePageClutter-enabled #mainColumn,html.hidePageClutter-enabled main.redesignFrontpageDesktop__main{width:100%!important;max-width:100%!important}li.frontpageGrid__feedItem.sdp-has-expired,li.frontpageGrid__feedItem.expired{order:999!important}a[data-resolved-href]{position:relative;text-decoration:none!important}a[data-resolved-href] .dealCard__title,a[data-resolved-href].dealCard__title{color:#2e7d32!important}.sdp-bypass-indicator{display:inline-block;width:12px;height:12px;margin-left:5px;background:#4CAF50;border-radius:50%}`;
+        const STATIC_CSS = `#sdPlusToastContainer{pointer-events:none}#sdPlusToastContainer>div{pointer-events:auto}#sdPlusNavMenu{position:relative}.sd-plus-menu-button{cursor:pointer;color:#333;font-weight:bold;padding:6px 10px;background:#fff;border:1px solid #ccc;border-radius:4px;display:inline-flex;align-items:center}.sd-plus-menu-dropdown{display:none}#sdPlusNavMenu.menu-open .sd-plus-menu-dropdown{display:block;position:absolute;top:100%;left:0;width:340px;background:#fff;border:1px solid #ccc;border-radius:8px;z-index:10000;font-family:Arial,sans-serif;font-size:13px;color:#333;text-align:left;box-shadow:0 4px 15px rgba(0,0,0,0.2)}#sdPlusMenuBody{padding:12px;max-height:85vh;overflow-y:auto}.filter-badge{display:inline-block;background:#ff5252;color:#fff;font-size:10px;font-weight:bold;border-radius:10px;padding:2px 6px;margin-left:5px}.filter-active{background:#e8f5e9!important;border-left:3px solid #34C759;padding-left:5px}.sd-plus-clear-btn{background:#FF9800!important;color:#fff}.sd-plus-section{border-bottom:1px solid #eee;margin-bottom:5px;padding-bottom:5px}.sd-plus-header{font-weight:bold;cursor:pointer;padding:8px 5px;background:#f9f9f9;display:flex;justify-content:space-between;border-radius:4px}.sd-plus-header:hover{background:#eee}.sd-plus-section.collapsed .sd-plus-content{display:none}.sd-plus-section.collapsed .arrow{transform:rotate(-90deg)}.sd-plus-content{padding:8px 5px}.switch-row{display:flex;justify-content:space-between;margin-bottom:8px;cursor:pointer;align-items:center}.sd-switch-input{display:none}.sd-switch-slider{position:relative;width:34px;height:18px;background:#ccc;border-radius:20px;transition:.3s}.sd-switch-slider:before{content:"";position:absolute;width:14px;height:14px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.3s}.sd-switch-input:checked+.sd-switch-slider{background:#34C759}.sd-switch-input:checked+.sd-switch-slider:before{transform:translateX(16px)}.control-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.control-group{margin-bottom:10px}.control-group span{display:block;margin-bottom:4px;color:#666;font-weight:500}.sd-plus-input-number{width:50px;padding:4px;border:1px solid #ddd;text-align:center;border-radius:4px}.sd-plus-input-text{width:60px;padding:4px;border:1px solid #ddd;border-radius:4px}.sd-plus-textarea{width:96%;padding:5px;border:1px solid #ddd;border-radius:4px;resize:vertical;min-height:40px;font-family:Arial}.sd-plus-select{padding:4px;border:1px solid #ddd;width:120px;border-radius:4px}.range-inputs{display:flex;gap:8px;align-items:center}.sd-plus-footer{display:flex;gap:5px;margin-top:15px;padding-top:10px;border-top:1px solid #eee}.sd-plus-footer button{flex:1;border:none;padding:8px;border-radius:4px;cursor:pointer;color:#fff;font-weight:bold}#sdPlusResetButton{background:#607d8b}.sd-plus-button-group button{background:#607d8b;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;color:#fff;width:32%}.dealCard.sd-plus-hide{display:none!important}html.hidePageClutter-enabled .redesignFrontpageDesktop{display:block!important;width:96%!important;max-width:none!important;margin:0 auto!important}ul.frontpageGrid,ul.cmsDealFeed__dealContainer{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))!important;gap:20px!important;width:100%!important}.dealCardV3,.dealCard,[data-threadid]{width:auto!important;max-width:none!important;height:100%!important}html:not(.priceFirst-enabled) .dealCard__content,html:not(.priceFirst-enabled) .dealCardV3__mainContent{grid-template-areas:"image image image" "title title title" "price originalPrice fireIcon" "extraInfo extraInfo extraInfo" "store store store"!important;grid-template-rows:auto auto 1.5em 1fr 20px!important}html:not(.priceFirst-enabled).showDiff-enabled .dealCard__content,html:not(.priceFirst-enabled).showDiff-enabled .dealCardV3__mainContent{grid-template-rows:auto auto 3em 1fr 20px!important}html.priceFirst-enabled .dealCard__content,html.priceFirst-enabled .dealCardV3__mainContent{grid-template-areas:"image image image" "price originalPrice fireIcon" "title title title" "extraInfo extraInfo extraInfo" "store store store"!important;grid-template-rows:auto 1.5em auto 1fr 20px!important}html.priceFirst-enabled.showDiff-enabled .dealCard__content,html.priceFirst-enabled.showDiff-enabled .dealCardV3__mainContent{grid-template-rows:auto 3em auto 1fr 20px!important}html.showDiff-enabled .dealCardV3__priceContainer[data-deal-percent]::after,html.showDiff-enabled .dealCard__priceContainer[data-deal-percent]::after{content:"($" attr(data-deal-diff) " | " attr(data-deal-percent) "%)";display:block;width:100%;font-style:italic;margin-top:4px;color:#555;font-size:0.9em}.dealCardV3__priceContainer,.dealCard__priceContainer{display:flex!important;flex-wrap:wrap!important;align-items:baseline}html.hidePageClutter-enabled #sideColumn,html.hidePageClutter-enabled aside.slickdealsSidebar{display:none!important}html.hidePageClutter-enabled #mainColumn,html.hidePageClutter-enabled main.redesignFrontpageDesktop__main{width:100%!important;max-width:100%!important}a[data-resolved-href]{position:relative;text-decoration:none!important}a[data-resolved-href] .dealCard__title,a[data-resolved-href].dealCard__title{color:#2e7d32!important}.sdp-bypass-indicator{display:inline-block;width:12px;height:12px;margin-left:5px;background:#4CAF50;border-radius:50%}`;
 
         function updateHtmlClasses(s) {
             try {
@@ -1021,7 +1015,6 @@
                         originalEl: card.querySelector(ConstantsModule.SELECTORS.originalPrice),
                         voteEl: card.querySelector(ConstantsModule.SELECTORS.voteCount),
                         badgeEl: card.querySelector(ConstantsModule.SELECTORS.dealBadge),
-                        dateCard: card.querySelector('.slickdealsTimestamp'),
                         titleText: titleEl ? titleEl.innerText?.toLowerCase() || '' : ''
                     });
                 } catch (e) {
@@ -1060,6 +1053,7 @@
 
         function processDealCard(card) {
             if (!card || card.dataset.sdpProcessed) return;
+            card.dataset.sdpProcessed = 'true'; // Mark early to prevent observer echo-loop
 
             try {
                 const li = card.closest('li');
@@ -1069,7 +1063,6 @@
 
                 const el = getCachedElements(card);
                 if (!el || !el.priceEl || !el.priceContainer) {
-                    card.dataset.sdpProcessed = 'true';
                     return;
                 }
 
@@ -1128,19 +1121,11 @@
                 }
 
                 processLinksInCard(card);
-                card.dataset.sdpProcessed = 'true';
 
             } catch (e) {
                 log.debug('processDealCard error:', e);
-                card.dataset.sdpProcessed = 'true'; // Mark as processed to avoid retrying
             }
         }
-
-        const debouncedProcess = UtilsModule.debounce(cards => {
-            UtilsModule.processInBatches(cards, processDealCard).then(() => {
-                context.eventBus.emit('batchComplete');
-            });
-        }, 300);
 
         return {
             processAllCards: async (force) => {
@@ -1174,8 +1159,7 @@
                 } finally {
                     context.isProcessing = false;
                 }
-            },
-            debouncedProcess
+            }
         };
     }
 
@@ -1198,7 +1182,7 @@
                     if (s.sortBy === 'default') {
                         return (parseInt(a.dataset.sdOriginalPos, 10) || 0) - (parseInt(b.dataset.sdOriginalPos, 10) || 0);
                     }
-                    const k = s.sortBy === 'date' ? 'sdpDate' : (s.sortBy === 'rating' ? 'sdpRating' : 'sdpDiscount');
+                    const k = s.sortBy === 'rating' ? 'sdpRating' : 'sdpDiscount';
                     return (parseFloat(b.dataset[k]) || 0) - (parseFloat(a.dataset[k]) || 0);
                 };
 
@@ -1227,7 +1211,7 @@
     // ============================================
     (async function init() {
         await safeExecute(async () => {
-            log.info('Initializing v32.3.6...');
+            log.info('Initializing v32.3.7...');
 
             // Event bus for inter-module communication
             const callbacks = {};
@@ -1276,7 +1260,7 @@
 
             // BUG FIX: Delayed reprocess to catch lazy-loaded deals
             // Slickdeals lazy-loads content that may not trigger MutationObserver
-            // v32.3.6: Added retry mechanism with coalescing to fix race condition
+            // v32.3.4: Added retry mechanism with coalescing to fix race condition
             let reprocessRetries = 0;
             let isRetryPending = false;
             const MAX_REPROCESS_RETRIES = 10;
@@ -1373,13 +1357,6 @@
                                     }
                                 });
 
-                                // For attribute changes on deal cards (lazy-reveal pattern)
-                                // Only trigger if we're NOT the ones who made the change
-                                if (m.type === 'attributes' &&
-                                    m.target.matches?.(ConstantsModule.SELECTORS.dealCard) &&
-                                    !m.target.dataset.sdpProcessed) {
-                                    newCards.push(m.target);
-                                }
                             });
 
                             // Process only the new cards (deduplicated)
@@ -1397,9 +1374,8 @@
                             context.isProcessing = false; // Ensure lock is released on error
                         }
                     });
-                    // Watch for childList AND attributes (for lazy-reveal)
-                    observer.observe(feed, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
-                    log.debug('Feed observer attached (with echo loop protection)');
+                    observer.observe(feed, { childList: true, subtree: true });
+                    log.debug('Feed observer attached (childList only)');
                 } else {
                     log.warn('Deal feed not found - observer not attached');
                 }
@@ -1423,11 +1399,9 @@
                 }
             });
 
-            context.eventBus.on('batchComplete', () => context.sorting.applySorting());
-
             // Expose debug interface to BOTH contexts
             const debugInterface = {
-                version: '32.3.6',
+                version: '32.3.7',
                 settings: context.settings,
                 testToast: (m, t) => ToastModule.show(m || 'Test!', t || 'info'),
                 dump: () => context.settings.debugDump(),
@@ -1448,7 +1422,7 @@
 
             // Delay toast to ensure everything is stable
             setTimeout(() => {
-                ToastModule.show('Slickdeals+ v32.3.6 loaded', 'success', 2000);
+                ToastModule.show('Slickdeals+ v32.3.7 loaded', 'success', 2000);
             }, 500);
 
             // AUTO-DIAGNOSTIC: Run full diagnostic if debug mode is enabled

@@ -3,7 +3,7 @@
 A browser userscript enhancement for Slickdeals.net that provides advanced deal filtering, highlighting, and performance improvements.
 
 ## Current Version
-**v32.3.6** (~1,470 lines)
+**v32.3.7** (~1,441 lines)
 
 ## Features
 
@@ -13,7 +13,7 @@ A browser userscript enhancement for Slickdeals.net that provides advanced deal 
 - **Price Range** - Filter by min/max price
 - **Gold Tier Only** - Show only highly rated deals
 - **Free Only** - Show only free deals
-- **Sort By** - Default, Newest, Discount %, or Rating
+- **Sort By** - Default, Discount %, or Rating
 - **Hide Promoted** - Remove sponsored deals
 
 ### Display Enhancements
@@ -36,7 +36,7 @@ A browser userscript enhancement for Slickdeals.net that provides advanced deal 
 ## Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/) browser extension
-2. Click the script file (`slickdeals-plus-v32.3.6.js`)
+2. Click the script file (`slickdeals-plus-v32.3.7.js`)
 3. Click "Install" when prompted
 
 ## Usage
@@ -55,9 +55,11 @@ localStorage.setItem('sdPlus_debug', 'true');
 
 Access debug interface in console:
 ```javascript
-window.sdPlus.dump();    // Full diagnostic report
+window.sdPlus.dump();      // Full diagnostic report (outputs to Tampermonkey sandbox console)
 window.sdPlus.reprocess(); // Force reprocess all deals
 ```
+
+> **Note:** `dump()` outputs to the Tampermonkey sandbox console, not the page console. Switch the console context dropdown to see it, or use `window.sdPlus.settings.getSettings()` which returns directly.
 
 ## Documentation
 

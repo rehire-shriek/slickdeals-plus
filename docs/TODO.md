@@ -2,8 +2,8 @@
 
 Active task tracking for bugs, improvements, and feature requests.
 
-**Last Updated:** 2025-01-30  
-**Current Version:** 32.3.6
+**Last Updated:** 2026-02-25
+**Current Version:** 32.3.7
 
 ---
 
@@ -16,10 +16,10 @@ Active task tracking for bugs, improvements, and feature requests.
 ## 🟡 Known Issues (Non-Blocking)
 
 ### Console Spam from Slickdeals Ads
-- **Status:** Won't fix (not our code)
+- **Status:** Fixed (v32.3.3)
 - **Description:** `postMessage: about:blank` errors flood console from ad iframes
-- **Workaround:** Filter console with `-postMessage -about:blank`
-- **Notes:** 3 `about:blank` iframes detected on page load
+- **Fix:** Console Cleaner (v32.3.3) suppresses ad iframe spam automatically
+- **Notes:** Console Cleaner auto-disables when debug mode is ON
 
 ### Debug `dump()` Output Not Visible
 - **Status:** Low priority
@@ -44,10 +44,12 @@ Active task tracking for bugs, improvements, and feature requests.
 ### MEDIUM PRIORITY
 
 #### Consolidate Storage Strategy
-- **Status:** TODO
+- **Status:** Partial fix (v32.3.0)
 - **Description:** Currently writes to BOTH `GM_setValue` AND `localStorage`, reads GM first with localStorage fallback
 - **Problem:** "Zombie Settings" - clearing one storage doesn't clear the other, no versioning to know which is authoritative
-- **Solution:** 
+- **v32.3.0 Fix:** Read-path conflict (zombie reads) resolved — GM is authoritative for reads
+- **Remaining:** Dual-write is still active. Full consolidation (single-write to GM, remove localStorage backup) is future work
+- **Solution (future):**
   - Make `GM_setValue` the single source of truth
   - Use `localStorage` only for one-time migration (read old settings, save to GM, delete from localStorage)
   - Add timestamp to settings object for conflict resolution if needed
@@ -93,7 +95,6 @@ if (localStorage.getItem('sdPlus_debug') === 'true') {
 
 ### Short Term (Next Release)
 
-- [x] **Hidden deals badge** - Show "X hidden" count (v32.3.5)
 - [ ] **Add visible loading indicator** - Show spinner/text while deals are being processed on page load
 - [ ] **Cache constant selectors** - Destructure SELECTORS at module scope to reduce property lookups
 - [ ] **Improve "Deals You May Have Missed" handling** - Consider separate processing or exclusion option
@@ -117,8 +118,7 @@ if (localStorage.getItem('sdPlus_debug') === 'true') {
 
 ## 🔧 Technical Debt
 
-- [ ] **Reduce observer scope** - Test removing `attributes: true` from MutationObserver if not needed
-  - *Note: Related to "Observer Echo Loop" fix above*
+- [x] **Reduce observer scope** - Removed `attributes: true` from MutationObserver (v32.3.7)
 - [ ] **Consolidate debounce timers** - Document timing behavior of multiple debounces
 - [ ] **Consolidate storage access** - Create unified storage module with consistent error handling
   - *Note: Related to "Consolidate Storage Strategy" above*
@@ -150,8 +150,39 @@ if (localStorage.getItem('sdPlus_debug') === 'true') {
 
 ## ✅ Completed (Move to CHANGELOG when released)
 
-### v32.3.6 (2025-01-30)\n- [x] Include Keywords filter (show only deals matching keywords, OR logic)\n\n### v32.3.5 (2025-01-30)\n- [x] Hidden deals badge (shows \"X hidden\" count in menu)\n\n### v32.3.4 (2025-01-30)
+### v32.3.7 (2026-02-25) — Audit Fixes
+- [x] Fix observer echo-loop gap (sdpProcessed set before class mutations)
+- [x] Fix parseInt truncating decimal prices (use parseFloat)
+- [x] Fix toast items silently discarded when body unavailable
+- [x] Add includeKeywords to debugDump() diagnostic
+- [x] Sync debugMode toggle to localStorage on save
+- [x] Skip debounce-owned fields in change handler (prevent double-fire)
+- [x] Remove broken "Newest" sort option
+- [x] Simplify observer to childList only (removed attribute watching)
+- [x] Remove dead code: resolveRedirectWithGM, GM_xmlhttpRequest grant
+- [x] Remove dead code: debouncedProcess, batchComplete event wiring
+- [x] Remove dead code: HAS_EXPIRED class definition and CSS
+
+### v32.3.6 (2025-01-30)
+- [x] Include Keywords filter (show only deals matching keywords, OR logic)
+
+### v32.3.5 (2025-01-30)
+- [x] Hidden deals badge (shows "X hidden" count in menu)
+
+### v32.3.4 (2025-01-30)
 - [x] Fix reprocess race condition (retry mechanism with coalescing)
+
+### v32.3.3 (2025-01-30)
+- [x] Console Cleaner (suppresses ad iframe postMessage spam)
+- [x] Auto-disables when debug mode is ON
+
+### v32.3.2 (2025-01-30)
+- [x] Comprehensive diagnostic report via Debug button and window.sdPlus.dump()
+- [x] Auto-diagnostic runs on page load when debug mode is enabled
+
+### v32.3.1 (2025-01-30)
+- [x] Debug logging visibility fix (console.debug → console.log)
+- [x] Removed corrupted emoji from debug output
 
 ### v32.3.0 (2025-01-14)
 - [x] Fix Observer Echo Loop (processing lock)
@@ -203,7 +234,7 @@ External technical review conducted. Key findings:
 | Remote Config | Recommended | Over-engineering | Won't Do |
 | unsafeWindow Exposure | Medium | Low | Fix (low priority) |
 | IntersectionObserver | Recommended | Research | Evaluate |
-| parsePrice Regex | Low | Low | Fix in v32.3.0 |
+| parsePrice Regex | Low | Low | TODO |
 | Toast Memory Leak | Low | Non-issue | Won't Do |
 
 **Next version (v32.3.0) focus:** Performance fixes from audit

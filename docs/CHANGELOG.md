@@ -11,6 +11,26 @@ Format: `[Version] - Date`
 
 ---
 
+## [32.3.7] - 2026-02-25
+
+### Fixed
+- **Observer echo-loop gap** - `sdpProcessed` flag now set before class mutations to prevent re-entry
+- **Decimal price truncation** - Changed `parseInt` to `parseFloat` for minPrice/maxPrice inputs
+- **Toast queue loss** - Items stay in queue when container unavailable (body not ready)
+- **Missing diagnostic field** - Added `includeKeywords` to `debugDump()` output
+- **Debug toggle sync** - `debugMode` now synced to `localStorage.sdPlus_debug` on save
+- **Double-fire on text fields** - `change` handler skips fields owned by debounced `input` handler
+- **Broken sort option** - Removed "Newest" sort (relied on non-existent `sdpDate` data)
+- **Wrong version comment** - Fixed `v32.3.6` → `v32.3.4` in reprocess retry comment
+
+### Removed
+- **Dead code: `resolveRedirectWithGM`** - Unused GM_xmlhttpRequest wrapper and grant
+- **Dead code: `debouncedProcess`** - Unused debounced batch processor and `batchComplete` event
+- **Dead code: `HAS_EXPIRED`** - Unused class definition and CSS rule
+- **Attribute observer** - Simplified MutationObserver to `childList` only (attribute watching unnecessary)
+
+---
+
 ## [32.3.6] - 2025-01-30
 
 ### Added
@@ -149,4 +169,4 @@ Migration from these keys is automatic.
 ### Known Limitations
 - Only works on slickdeals.net (no multi-site support)
 - No cloud sync of settings
-- Console spam from Slickdeals ads (not fixable by us)
+- Console spam from Slickdeals ads (mitigated by Console Cleaner in v32.3.3)

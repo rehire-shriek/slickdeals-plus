@@ -9,7 +9,7 @@ Tampermonkey userscript that enhances the Slickdeals frontpage with deal filteri
 
 ## Architecture
 
-Single-file userscript (`slickdeals-plus-v32.3.6.js`, ~1,467 lines). No build system, no dependencies, no framework — vanilla ES6+ JavaScript in a single IIFE with named inner modules wired via a shared `context` object.
+Single-file userscript (`slickdeals-plus-v32.3.7.js`, ~1,441 lines). No build system, no dependencies, no framework — vanilla ES6+ JavaScript in a single IIFE with named inner modules wired via a shared `context` object.
 
 **Module order:** suppressAdErrors → log → safeExecute → ToastModule → ConstantsModule → ValidationModule → UtilsModule → LinkResolutionModule → SettingsModule → MenuModule → StylesModule → ProcessingModule → SortingModule → init()
 
