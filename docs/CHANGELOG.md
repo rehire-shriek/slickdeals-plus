@@ -11,6 +11,30 @@ Format: `[Version] - Date`
 
 ---
 
+## [32.3.8] - 2026-05-28
+
+Audit fixes (Claude audit + Gemini red-team). Backlog items 1, 2, 3, 4, 5, 7, 10.
+
+### Fixed
+- **Vote/temperature parse bug** - `parseInt(voteEl.textContent)` stopped at the first non-digit, collapsing `"1,234"` and `"1.2k"` to `1` and silently breaking rating highlight, `isGold`, and Sort-by-Rating for every hot deal. New `UtilsModule.parseHumanNumber` handles comma, `k`/`m` suffix, degree symbol, and preserves leading `+`/`-` sign (a downvoted deal stays negative).
+- **Dead `.dealCard.sd-plus-hide` CSS rule** - The hide class is applied to the `<li>`, which never carries `.dealCard`, so the rule never matched. Retargeted to `.sd-plus-hide`. Inline `li.style.display` toggles retained (sort + badge count depend on them).
+- **Feed observer bricked on slow loads** - The one-shot `waitForElement(dealFeed, 3000)` gate meant a cold load past 3s left the feed observer unattached for the whole session with no recovery. Now: attach immediately if the feed is present, else watch `document.body` until it appears, attach, and **disconnect the body observer immediately** (no session-long `subtree` observer on `body`). Nav-bar `waitForElement` timeout raised 3s → 10s.
+
+### Security
+- **Redirect bypass hardening** - `window.open(dest, '_blank', 'noopener,noreferrer')` closes the reverse-tabnabbing vector and drops the SD referrer. `extractDestinationUrl` now validates the decoded `u2` is an absolute `http:`/`https:` URL, blocking `javascript:`/`data:` schemes from being stored in `data-resolved-href` or opened.
+
+### Platform
+- **`@match` covers subdomains** - Replaced host-exact `https://slickdeals.net/*` with `*://slickdeals.net/*` + `*://*.slickdeals.net/*` (apex + subdomains, http→https).
+- **`@noframes`** - Script no longer initializes inside the ad iframes SD injects.
+
+### Refactor
+- **Single `VERSION` constant** - Hoisted `const VERSION = '32.3.8'`; referenced at all in-code sites (diagnostic, init log, debug interface, load toast). The `==UserScript==` header `@name`/`@version` stay literals (Tampermonkey parses them statically).
+
+### Deferred
+- **Auto-update metadata (`@downloadURL`/`@updateURL`)** - The repo is public, so this is now viable, but the versioned-filename release convention (`...-v32.3.8.js` → archived next release) would break `@updateURL`. Deferred pending a stable-URL or release-asset strategy — *not* "no remote" as previously noted.
+
+---
+
 ## [32.3.7] - 2026-02-25
 
 ### Fixed

@@ -2,7 +2,7 @@
 
 Active task tracking for bugs, improvements, and feature requests.
 
-**Last Updated:** 2026-02-25
+**Last Updated:** 2026-05-28
 **Current Version:** 32.3.7
 
 ---
@@ -26,6 +26,94 @@ Active task tracking for bugs, improvements, and feature requests.
 - **Description:** `window.sdPlus.dump()` logs to Tampermonkey sandbox console, not visible in page console
 - **Workaround:** Use `window.sdPlus.settings.getSettings()` instead
 - **Potential Fix:** Return object instead of console.log, or use `unsafeWindow.console`
+
+---
+
+## 🆕 v32.3.8 Audit Backlog (Claude audit + Gemini red-team, 2026-05-28)
+
+Findings from a fresh code audit cross-checked against a Gemini red-team pass. Severity reflects our assessment after stress-testing both sets of claims (notes record where we overrode the auditor). Items 1–7 are a coherent "audit fixes" release candidate.
+
+**Status:** Items **1, 2, 3, 4, 5, 7, 10 shipped in v32.3.8** (2026-05-28). Item **6 deferred** (see note). Items 8, 9, 11–15 remain open.
+
+### HIGH — silent feature breakage
+
+#### 1. Vote/temperature `parseInt` bug ✅ shipped v32.3.8
+- **Location:** `processDealCard`, line ~1071 — `parseInt(el.voteEl?.textContent || '0', 10)`
+- **Problem:** SD renders temperature as `"1,234"` or `"1.2k"`. `parseInt` stops at the first non-digit → both read as `1`. Silently breaks rating highlight, `isGold`, and Sort-by-Rating for every hot deal.
+- **Fix (shipped):** Added `UtilsModule.parseHumanNumber`. Strip `°`/commas, then one regex `^([+-]?\d*\.?\d+)\s*([km])?` → `parseFloat`, ×1,000 / ×1,000,000 for `k`/`m`, `Math.round`, `0` on `NaN`. **Preserves the leading `+`/`-` sign** (Gemini red-team) so a downvoted (-N) deal doesn't read as positive and falsely clear the rating threshold.
+- **Verify (still recommended):** Confirm one real `.dealCardSocialControls__voteCount` `textContent` from a live page — the parser is defensive across known formats regardless.
+
+#### 2. Dead `.dealCard.sd-plus-hide` CSS rule ✅ shipped v32.3.8
+- **Location:** STATIC_CSS line ~926 vs class applied to `<li>` at line ~1119
+- **Problem:** Hide class goes on the `<li>`, but the only stylesheet rule targets `.dealCard.sd-plus-hide` — never matches. Hiding works *only* via the inline `li.style.display='none'` fallback; fragile to any refactor that trusts the CSS.
+- **Fix:** Retarget rule to `li.sd-plus-hide` (or `.sd-plus-hide`) and drop reliance on inline style.
+
+### MEDIUM — security / robustness / platform
+
+#### 3. Redirect bypass: tabnabbing + no scheme check ✅ shipped v32.3.8
+- **Location:** `processLinksInCard`, line ~1040 — `window.open(dest, '_blank')`
+- **Problem:** No `noopener` (reverse tabnabbing — destination can navigate the SD tab); `dest` decoded from the `u2` param with no scheme validation.
+- **Fix:** `window.open(dest, '_blank', 'noopener,noreferrer')` (noreferrer also suppresses the SD referrer, consistent with bypassing the tracker). Gate on `new URL(dest).protocol` being `http:`/`https:` before opening.
+
+#### 4. `@match` misses subdomains ✅ shipped v32.3.8
+- **Location:** metadata header
+- **Problem:** `@match https://slickdeals.net/*` is host-exact — does not match `www.slickdeals.net`.
+- **Fix (shipped):** Dual entry `// @match *://slickdeals.net/*` + `// @match *://*.slickdeals.net/*` (apex + subdomains, belt-and-suspenders across script managers, per Gemini).
+
+#### 5. `@noframes` — stop running inside ad iframes ✅ shipped v32.3.8
+- **Problem:** Without it, the full ~1,440-line script initializes (loads settings, attaches listeners) inside *every* ad iframe SD injects. This is the concrete lever for the long-standing "block ad iframes at source" TODO and reduces the need for the runtime `console.error` patch.
+- **Fix:** Add `// @noframes` to the header.
+
+#### 6. Auto-update metadata ⏸️ DEFERRED (reason corrected 2026-05-28)
+- **Problem:** No `@downloadURL`/`@updateURL` → installed users never receive any of the 32.3.x fixes automatically.
+- **Fix:** Add both pointing at a raw file in this repo so Tampermonkey's update check works.
+- **Status:** The repo IS public (`github.com/rehire-shriek/slickdeals-plus`), so this is technically viable now — the earlier "git remote is empty / repo is local-only" deferral reason was **wrong** (the remote exists). The real blocker: the versioned-filename convention (`slickdeals-plus-v32.3.8.js` → moved to `archived files/` next release) means a versioned raw URL in `@updateURL` breaks on the very next version. **Needs a stable-URL strategy** before shipping: either (a) a canonical un-versioned file at repo root kept current each release, or (b) point `@updateURL` at a tagged GitHub Release asset. Decision pending (JJ chose to defer for v32.3.8).
+
+#### 7. `waitForElement` hard 3s timeout (bricks slow loads) → prefer body-observer ✅ shipped v32.3.8
+- **Location:** navBar `:619`, dealFeed `:1323`
+- **Problem:** Cold load past 3s resolves `null` and the menu + feed observer never attach for the whole session, with no recovery.
+- **Fix (shipped):** Feed — if present, attach the childList observer immediately; else watch `document.body` until `SELECTORS.dealFeed` appears, attach, then **`disconnect()` the body observer immediately** (per Gemini: never leave a session-long `subtree:true` observer on `body` — perf hazard on SD's ad-heavy/infinite-scroll DOM). Nav menu — `waitForElement(navBar)` timeout raised 3s → 10s; existing `navBarObserver` re-inserts on removal.
+- **Note:** Did NOT build Gemini's throttled SPA-rebind layer. The original "also covers SPA nav" framing assumed client-side feed swaps; SD does full page loads (`@run-at document-idle` re-runs the script), and the existing interval (500/1500/3000ms) + scroll reprocessing already recovers card processing. Left as a separate item if SPA nav is ever confirmed.
+
+#### 8. Missing `@grant unsafeWindow`
+- **Location:** line ~1417 — `unsafeWindow.sdPlus = debugInterface` (guarded by `typeof`)
+- **Problem:** Grant not declared. Under stricter managers (Violentmonkey, hardened Tampermonkey) `unsafeWindow` is `undefined`, so page-console exposure silently fails.
+- **Severity note:** Gemini called this High / "silent crash." Overridden to **Medium** — the `typeof unsafeWindow !== 'undefined'` guard prevents any crash; `window.sdPlus` still works in the sandbox. Only page-console access is lost.
+- **Fix:** Add `// @grant unsafeWindow`.
+
+### LOW — correctness polish / maintainability
+
+#### 9. `cloneNode` listener-purge pattern
+- **Location:** `MenuModule.setupEventListeners`, line ~725
+- **Problem:** Cloning the menu body to drop listeners is a hack. *Reframed from Gemini's "DOM thrashing/reflow" framing* — it runs once, so it's not a perf issue. Two real concerns: (a) listener hygiene (use `AbortController` or named handlers + `removeEventListener`); (b) **correctness risk** — `populateMenu()` runs *before* the clone; input/select have spec'd cloning steps that copy value/checkedness, but `<textarea>` does not, so Block/Include Keywords fields may render blank on menu open.
+- **Action:** Verify textarea state survives the clone on a live page. If blank → real bug, fix order or stop cloning. Either way, migrate to `AbortController`.
+
+#### 10. Single `VERSION` constant ✅ shipped v32.3.8
+- **Problem:** `'32.3.7'` duplicated at lines ~6 (header), ~541, ~1404, ~1425 — already drifted once (v32.3.6→v32.3.4 comment fix last release). (The original audit list also missed the `log.info('Initializing v32.3.7...')` site at ~1214 and the `@name` header literal at ~2.)
+- **Fix (shipped):** Hoisted `const VERSION = '32.3.8'`; referenced at all four in-code sites (diagnostic `:541`, init log `:1214`, debug interface `:1404`, load toast `:1425`). Header `@name` + `@version` stay literals (Tampermonkey parses the metadata block statically) — bumped by hand.
+
+#### 11. Promoted detection brittle
+- **Location:** line ~1088 — matches badge text `includes('promoted')` only
+- **Problem:** SD also labels these "Sponsored." "Hide Promoted" misses them.
+- **Fix:** Match both terms (and a `data-` attribute if one exists).
+
+#### 12. Keyword matching word-boundaries
+- **Location:** lines ~1110 / ~1115 — bare `.includes(k.trim())`
+- **Problem:** Blocking `"used"` also hides `"m`**`used`**`"`, `"f`**`used`**`"`. Including `"pro"` matches `"`**`pro`**`duct"`.
+- **Fix (optional):** Boundary-aware match (`\bword\b`) for short tokens. (Supersedes the older "Improve parsePrice Regex" note's scope — different field.)
+
+#### 13. Debug-mode storage desync + unrestored `console.error`
+- **Location:** `suppressAdErrors` IIFE, line ~84
+- **Problem:** Reads `localStorage.sdPlus_debug` at the very top, but master settings load preferentially from `GM_getValue`. If localStorage is wiped but GM persists, the Console Cleaner's view of debug mode diverges from the UI's. Also `console.error` is monkey-patched globally and never restored.
+- **Fix:** Read the debug flag from GM (with localStorage fallback); save a reference to the original `console.error` and expose a restore path (e.g., via `GM_registerMenuCommand`).
+
+#### 14. Observer in-flight coverage gap
+- **Location:** observer callback line ~1328
+- **Problem:** The `isProcessing` boolean makes the observer *skip* mutations during a batch; cards injected mid-batch are only recovered by the next scroll event.
+- **Fix (optional):** A "dirty" flag that re-runs a delta scan once the lock releases.
+
+#### 15. `GM_registerMenuCommand` quick toggles
+- **Enhancement:** Host Debug on/off and Reset in Tampermonkey's native menu — clean home for the debug toggle that currently lives only in `localStorage`.
 
 ---
 

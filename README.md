@@ -3,7 +3,7 @@
 A browser userscript enhancement for Slickdeals.net that provides advanced deal filtering, highlighting, and performance improvements.
 
 ## Current Version
-**v32.3.7** (~1,441 lines)
+**v32.3.8** (~1,504 lines)
 
 ## Features
 
@@ -36,7 +36,7 @@ A browser userscript enhancement for Slickdeals.net that provides advanced deal 
 ## Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/) browser extension
-2. Click the script file (`slickdeals-plus-v32.3.7.js`)
+2. Click the script file (`slickdeals-plus-v32.3.8.js`)
 3. Click "Install" when prompted
 
 ## Usage
