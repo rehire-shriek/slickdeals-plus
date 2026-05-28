@@ -81,7 +81,7 @@ Findings from a fresh code audit cross-checked against a Gemini red-team pass. S
   4. `gh release create vX.Y.Z /tmp/slickdeals-plus.user.js --title "vX.Y.Z" --notes "..."`
   5. Verify the stable URL: `curl -sIL https://github.com/rehire-shriek/slickdeals-plus/releases/latest/download/slickdeals-plus.user.js` → should chain `302 → 302 → 200`; confirm the body's `@version` matches.
 - **One-time reinstall (documented in README):** installs from the old repo file have no update source and will NOT auto-migrate — reinstall once from the release asset to get onto the update track.
-- **Follow-up (open):** automate steps 2–5 in a `release.sh` so it's one command — see new T1/T2 backlog item below if logged.
+- **Follow-up (DONE):** automated in `./release.sh` (`prep` + `publish` + `verify`). `publish` validates version consistency across all sites + CHANGELOG, tags, uploads the correctly-named asset, and verifies the stable URL. See CLAUDE.md → Releasing.
 
 #### 7. `waitForElement` hard 3s timeout (bricks slow loads) → prefer body-observer ✅ shipped v32.3.8
 - **Location:** navBar `:619`, dealFeed `:1323`
