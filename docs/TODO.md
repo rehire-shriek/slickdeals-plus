@@ -33,7 +33,7 @@ Active task tracking for bugs, improvements, and feature requests.
 
 Findings from a fresh code audit cross-checked against a Gemini red-team pass. Severity reflects our assessment after stress-testing both sets of claims (notes record where we overrode the auditor). Items 1–7 are a coherent "audit fixes" release candidate.
 
-**Status:** Items **1, 2, 3, 4, 5, 7, 10 shipped in v32.3.8** (2026-05-28). Item **6 deferred** (see note). Items 8, 9, 11–15 remain open.
+**Status:** Items **1, 2, 3, 4, 5, 7, 10 shipped in v32.3.8** (2026-05-28). Item **6 is READY** — strategy locked (GitHub Release asset), targets the next release. Items 8, 9, 11–15 remain open.
 
 ### HIGH — silent feature breakage
 
@@ -64,10 +64,24 @@ Findings from a fresh code audit cross-checked against a Gemini red-team pass. S
 - **Problem:** Without it, the full ~1,440-line script initializes (loads settings, attaches listeners) inside *every* ad iframe SD injects. This is the concrete lever for the long-standing "block ad iframes at source" TODO and reduces the need for the runtime `console.error` patch.
 - **Fix:** Add `// @noframes` to the header.
 
-#### 6. Auto-update metadata ⏸️ DEFERRED (reason corrected 2026-05-28)
+#### 6. Auto-update metadata 🟢 READY (strategy decided 2026-05-28; targets next release)
 - **Problem:** No `@downloadURL`/`@updateURL` → installed users never receive any of the 32.3.x fixes automatically.
-- **Fix:** Add both pointing at a raw file in this repo so Tampermonkey's update check works.
-- **Status:** The repo IS public (`github.com/rehire-shriek/slickdeals-plus`), so this is technically viable now — the earlier "git remote is empty / repo is local-only" deferral reason was **wrong** (the remote exists). The real blocker: the versioned-filename convention (`slickdeals-plus-v32.3.8.js` → moved to `archived files/` next release) means a versioned raw URL in `@updateURL` breaks on the very next version. **Needs a stable-URL strategy** before shipping: either (a) a canonical un-versioned file at repo root kept current each release, or (b) point `@updateURL` at a tagged GitHub Release asset. Decision pending (JJ chose to defer for v32.3.8).
+- **Background:** The repo IS public (`github.com/rehire-shriek/slickdeals-plus`), so this is viable — the original "git remote is empty / repo is local-only" deferral reason was **wrong** (the remote exists). The real blocker was the versioned-filename convention (`slickdeals-plus-v32.3.8.js` → moved to `archived files/` next release): a versioned raw URL in `@updateURL` would break on the very next version.
+- **Decision (locked):** **Use a tagged GitHub Release asset**, not a raw-file URL. Each release attaches the script as `slickdeals-plus.user.js` (note the `.user.js` extension — required for Tampermonkey to recognize it as an installable/updatable userscript), and the metadata points at the stable `/releases/latest/download/` redirect, which always resolves to the newest release's asset. Chosen over a canonical raw file at repo root for cleaner provenance and real release artifacts; cost is a tag + `gh release create` step per release.
+- **Header to add:**
+  ```
+  // @downloadURL https://github.com/rehire-shriek/slickdeals-plus/releases/latest/download/slickdeals-plus.user.js
+  // @updateURL   https://github.com/rehire-shriek/slickdeals-plus/releases/latest/download/slickdeals-plus.user.js
+  ```
+- **Implementation steps (next release, e.g. v32.3.9):**
+  1. Add the two header lines above to the current script (alongside `@version`).
+  2. Tag the release commit: `git tag v32.3.9 && git push origin v32.3.9`.
+  3. Publish with the asset named exactly `slickdeals-plus.user.js` (the filename the URL expects):
+     `gh release create v32.3.9 "slickdeals-plus-v32.3.9.js#slickdeals-plus.user.js" --title "v32.3.9" --notes-file <changelog excerpt>`
+     (the `#slickdeals-plus.user.js` suffix renames the uploaded asset so the stable URL resolves).
+  4. Verify: open `https://github.com/rehire-shriek/slickdeals-plus/releases/latest/download/slickdeals-plus.user.js` in a browser — it should download the current script. Then in Tampermonkey, "Check for updates" should detect the version.
+- **One-time note:** existing installs (installed from the local file, no `@updateURL`) will NOT auto-migrate — they have no update source. Users must reinstall once from the release asset to get onto the auto-update track. Worth a line in the README install section when this ships.
+- **Workflow doc:** once adopted, fold the tag + `gh release create` steps into the standard release checklist (currently: bump version → archive old file → update docs → commit). Consider a small release script to automate steps 2–3.
 
 #### 7. `waitForElement` hard 3s timeout (bricks slow loads) → prefer body-observer ✅ shipped v32.3.8
 - **Location:** navBar `:619`, dealFeed `:1323`
