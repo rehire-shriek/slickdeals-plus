@@ -11,6 +11,19 @@ Format: `[Version] - Date`
 
 ---
 
+## [32.3.9] - 2026-05-28
+
+Auto-update enablement (backlog item #6).
+
+### Added
+- **Auto-update metadata** - `@downloadURL`/`@updateURL` now point at the GitHub Release "latest" asset (`/releases/latest/download/slickdeals-plus.user.js`), so installed users receive future versions automatically. Chosen over a raw-file URL for stable provenance across the versioned-filename release convention.
+
+### Notes
+- **One-time reinstall required** - Installs from the older repo file have no update source. Reinstall once from the release asset to get onto the auto-update track. See README → Installation.
+- **New release step** - Each release now tags (`git tag vX.Y.Z`) and publishes the script as a release asset named `slickdeals-plus.user.js` (`gh release create ... "file#slickdeals-plus.user.js"`) so the stable "latest" URL resolves.
+
+---
+
 ## [32.3.8] - 2026-05-28
 
 Audit fixes (Claude audit + Gemini red-team). Backlog items 1, 2, 3, 4, 5, 7, 10.

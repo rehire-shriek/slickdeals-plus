@@ -33,7 +33,7 @@ Active task tracking for bugs, improvements, and feature requests.
 
 Findings from a fresh code audit cross-checked against a Gemini red-team pass. Severity reflects our assessment after stress-testing both sets of claims (notes record where we overrode the auditor). Items 1–7 are a coherent "audit fixes" release candidate.
 
-**Status:** Items **1, 2, 3, 4, 5, 7, 10 shipped in v32.3.8** (2026-05-28). Item **6 is READY** — strategy locked (GitHub Release asset), targets the next release. Items 8, 9, 11–15 remain open.
+**Status:** Items **1, 2, 3, 4, 5, 7, 10 shipped in v32.3.8** and **6 shipped in v32.3.9** (2026-05-28). Items 8, 9, 11–15 remain open.
 
 ### HIGH — silent feature breakage
 
@@ -64,7 +64,7 @@ Findings from a fresh code audit cross-checked against a Gemini red-team pass. S
 - **Problem:** Without it, the full ~1,440-line script initializes (loads settings, attaches listeners) inside *every* ad iframe SD injects. This is the concrete lever for the long-standing "block ad iframes at source" TODO and reduces the need for the runtime `console.error` patch.
 - **Fix:** Add `// @noframes` to the header.
 
-#### 6. Auto-update metadata 🟢 READY (strategy decided 2026-05-28; targets next release)
+#### 6. Auto-update metadata ✅ shipped v32.3.9 (headers added; release asset pending `gh release create`)
 - **Problem:** No `@downloadURL`/`@updateURL` → installed users never receive any of the 32.3.x fixes automatically.
 - **Background:** The repo IS public (`github.com/rehire-shriek/slickdeals-plus`), so this is viable — the original "git remote is empty / repo is local-only" deferral reason was **wrong** (the remote exists). The real blocker was the versioned-filename convention (`slickdeals-plus-v32.3.8.js` → moved to `archived files/` next release): a versioned raw URL in `@updateURL` would break on the very next version.
 - **Decision (locked):** **Use a tagged GitHub Release asset**, not a raw-file URL. Each release attaches the script as `slickdeals-plus.user.js` (note the `.user.js` extension — required for Tampermonkey to recognize it as an installable/updatable userscript), and the metadata points at the stable `/releases/latest/download/` redirect, which always resolves to the newest release's asset. Chosen over a canonical raw file at repo root for cleaner provenance and real release artifacts; cost is a tag + `gh release create` step per release.
