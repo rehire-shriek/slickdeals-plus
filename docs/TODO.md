@@ -64,24 +64,24 @@ Findings from a fresh code audit cross-checked against a Gemini red-team pass. S
 - **Problem:** Without it, the full ~1,440-line script initializes (loads settings, attaches listeners) inside *every* ad iframe SD injects. This is the concrete lever for the long-standing "block ad iframes at source" TODO and reduces the need for the runtime `console.error` patch.
 - **Fix:** Add `// @noframes` to the header.
 
-#### 6. Auto-update metadata ✅ shipped v32.3.9 (headers added; release asset pending `gh release create`)
+#### 6. Auto-update metadata ✅ SHIPPED v32.3.9 (2026-05-28 — headers added + release published + URL verified)
 - **Problem:** No `@downloadURL`/`@updateURL` → installed users never receive any of the 32.3.x fixes automatically.
-- **Background:** The repo IS public (`github.com/rehire-shriek/slickdeals-plus`), so this is viable — the original "git remote is empty / repo is local-only" deferral reason was **wrong** (the remote exists). The real blocker was the versioned-filename convention (`slickdeals-plus-v32.3.8.js` → moved to `archived files/` next release): a versioned raw URL in `@updateURL` would break on the very next version.
-- **Decision (locked):** **Use a tagged GitHub Release asset**, not a raw-file URL. Each release attaches the script as `slickdeals-plus.user.js` (note the `.user.js` extension — required for Tampermonkey to recognize it as an installable/updatable userscript), and the metadata points at the stable `/releases/latest/download/` redirect, which always resolves to the newest release's asset. Chosen over a canonical raw file at repo root for cleaner provenance and real release artifacts; cost is a tag + `gh release create` step per release.
-- **Header to add:**
+- **Background:** The repo IS public (`github.com/rehire-shriek/slickdeals-plus`), so this was viable — the original "git remote is empty / repo is local-only" deferral reason was **wrong** (the remote exists). The real blocker was the versioned-filename convention (`slickdeals-plus-vX.Y.Z.js` → moved to `archived files/` next release): a versioned raw URL in `@updateURL` would break on the very next version.
+- **Decision (locked):** tagged **GitHub Release asset**, not a raw-file URL. Each release attaches the script as `slickdeals-plus.user.js` (the `.user.js` extension is required for Tampermonkey to recognize it as installable/updatable), and the metadata points at the stable `/releases/latest/download/` redirect, which always resolves to the newest release's asset. Chosen over a canonical raw file at repo root for cleaner provenance + real release artifacts; cost is a tag + `gh release create` step per release.
+- **Headers (shipped in v32.3.9):**
   ```
   // @downloadURL https://github.com/rehire-shriek/slickdeals-plus/releases/latest/download/slickdeals-plus.user.js
   // @updateURL   https://github.com/rehire-shriek/slickdeals-plus/releases/latest/download/slickdeals-plus.user.js
   ```
-- **Implementation steps (next release, e.g. v32.3.9):**
-  1. Add the two header lines above to the current script (alongside `@version`).
-  2. Tag the release commit: `git tag v32.3.9 && git push origin v32.3.9`.
-  3. Publish with the asset named exactly `slickdeals-plus.user.js` (the filename the URL expects):
-     `gh release create v32.3.9 "slickdeals-plus-v32.3.9.js#slickdeals-plus.user.js" --title "v32.3.9" --notes-file <changelog excerpt>`
-     (the `#slickdeals-plus.user.js` suffix renames the uploaded asset so the stable URL resolves).
-  4. Verify: open `https://github.com/rehire-shriek/slickdeals-plus/releases/latest/download/slickdeals-plus.user.js` in a browser — it should download the current script. Then in Tampermonkey, "Check for updates" should detect the version.
-- **One-time note:** existing installs (installed from the local file, no `@updateURL`) will NOT auto-migrate — they have no update source. Users must reinstall once from the release asset to get onto the auto-update track. Worth a line in the README install section when this ships.
-- **Workflow doc:** once adopted, fold the tag + `gh release create` steps into the standard release checklist (currently: bump version → archive old file → update docs → commit). Consider a small release script to automate steps 2–3.
+- **⚠️ Asset-naming gotcha (learned during v32.3.9):** the `/releases/latest/download/<NAME>` URL keys off the **asset's actual filename**, NOT the `gh release create file#label` display-label. The `#label` suffix only sets the UI label — it does **not** rename the download target. So you must upload a file *literally named* `slickdeals-plus.user.js`. Don't commit that name into the repo (breaks the versioned convention) — copy it to a temp path and upload from there.
+- **Per-release procedure (verified working):**
+  1. Bump `@version` + `const VERSION` (header `@name`/`@version` are literals — hand-edit).
+  2. Stage the correctly-named asset from a temp dir: `cp slickdeals-plus-vX.Y.Z.js /tmp/slickdeals-plus.user.js`
+  3. Commit + push `main`, then tag: `git tag vX.Y.Z && git push origin vX.Y.Z`
+  4. `gh release create vX.Y.Z /tmp/slickdeals-plus.user.js --title "vX.Y.Z" --notes "..."`
+  5. Verify the stable URL: `curl -sIL https://github.com/rehire-shriek/slickdeals-plus/releases/latest/download/slickdeals-plus.user.js` → should chain `302 → 302 → 200`; confirm the body's `@version` matches.
+- **One-time reinstall (documented in README):** installs from the old repo file have no update source and will NOT auto-migrate — reinstall once from the release asset to get onto the update track.
+- **Follow-up (open):** automate steps 2–5 in a `release.sh` so it's one command — see new T1/T2 backlog item below if logged.
 
 #### 7. `waitForElement` hard 3s timeout (bricks slow loads) → prefer body-observer ✅ shipped v32.3.8
 - **Location:** navBar `:619`, dealFeed `:1323`
