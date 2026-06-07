@@ -1072,7 +1072,7 @@
     // ============================================
     function StylesModule(context) {
         const styleSheets = { static: null, dynamic: null };
-        const STATIC_CSS = `#sdPlusToastContainer{pointer-events:none}#sdPlusToastContainer>div{pointer-events:auto}#sdPlusNavMenu{position:relative}.sd-plus-menu-button{cursor:pointer;color:#333;font-weight:bold;padding:6px 10px;background:#fff;border:1px solid #ccc;border-radius:4px;display:inline-flex;align-items:center}.sd-plus-menu-dropdown{display:none}#sdPlusNavMenu.menu-open .sd-plus-menu-dropdown{display:block;position:absolute;top:100%;left:0;width:340px;background:#fff;border:1px solid #ccc;border-radius:8px;z-index:10000;font-family:Arial,sans-serif;font-size:13px;color:#333;text-align:left;box-shadow:0 4px 15px rgba(0,0,0,0.2)}#sdPlusMenuBody{padding:12px;max-height:85vh;overflow-y:auto}.filter-badge{display:inline-block;background:#ff5252;color:#fff;font-size:10px;font-weight:bold;border-radius:10px;padding:2px 6px;margin-left:5px}.filter-active{background:#e8f5e9!important;border-left:3px solid #34C759;padding-left:5px}.sd-plus-clear-btn{background:#FF9800!important;color:#fff}.sd-plus-section{border-bottom:1px solid #eee;margin-bottom:5px;padding-bottom:5px}.sd-plus-header{font-weight:bold;cursor:pointer;padding:8px 5px;background:#f9f9f9;display:flex;justify-content:space-between;border-radius:4px}.sd-plus-header:hover{background:#eee}.sd-plus-section.collapsed .sd-plus-content{display:none}.sd-plus-section.collapsed .arrow{transform:rotate(-90deg)}.sd-plus-content{padding:8px 5px}.switch-row{display:flex;justify-content:space-between;margin-bottom:8px;cursor:pointer;align-items:center}.sd-switch-input{display:none}.sd-switch-slider{position:relative;width:34px;height:18px;background:#ccc;border-radius:20px;transition:.3s}.sd-switch-slider:before{content:"";position:absolute;width:14px;height:14px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.3s}.sd-switch-input:checked+.sd-switch-slider{background:#34C759}.sd-switch-input:checked+.sd-switch-slider:before{transform:translateX(16px)}.control-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.control-group{margin-bottom:10px}.control-group span{display:block;margin-bottom:4px;color:#666;font-weight:500}.sd-plus-input-number{width:50px;padding:4px;border:1px solid #ddd;text-align:center;border-radius:4px}.sd-plus-input-text{width:60px;padding:4px;border:1px solid #ddd;border-radius:4px}.sd-plus-textarea{width:96%;padding:5px;border:1px solid #ddd;border-radius:4px;resize:vertical;min-height:40px;font-family:Arial}.sd-plus-select{padding:4px;border:1px solid #ddd;width:120px;border-radius:4px}.range-inputs{display:flex;gap:8px;align-items:center}.sd-plus-footer{display:flex;gap:5px;margin-top:15px;padding-top:10px;border-top:1px solid #eee}.sd-plus-footer button{flex:1;border:none;padding:8px;border-radius:4px;cursor:pointer;color:#fff;font-weight:bold}#sdPlusResetButton{background:#607d8b}.sd-plus-button-group button{background:#607d8b;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;color:#fff;width:32%}.sd-plus-hide{display:none!important}html.hidePageClutter-enabled .redesignFrontpageDesktop{display:block!important;width:96%!important;max-width:none!important;margin:0 auto!important}ul.frontpageGrid,ul.cmsDealFeed__dealContainer{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))!important;gap:20px!important;width:100%!important}.dealCardV3,.dealCard,[data-threadid]{width:auto!important;max-width:none!important;height:100%!important}html.priceFirst-enabled .dealCardGrid.dealCardVariant1{grid-template-areas:"userInfo" "image" "priceRow" "title" "extraInfo" "store" "actions"!important}html.priceFirst-enabled .dealCardVariant1__priceRow{grid-area:priceRow!important}html.showDiff-enabled .dealCardVariant1__priceRow[data-deal-percent]::after,html.showDiff-enabled .dealCardV3__priceContainer[data-deal-percent]::after,html.showDiff-enabled .dealCard__priceContainer[data-deal-percent]::after{content:"($" attr(data-deal-diff) " | " attr(data-deal-percent) "%)";display:block;width:100%;font-style:italic;margin-top:4px;color:#555;font-size:0.9em}.dealCardVariant1__priceRow,.dealCardV3__priceContainer,.dealCard__priceContainer{display:flex!important;flex-wrap:wrap!important;align-items:baseline;overflow:visible!important;height:auto!important;max-height:none!important}html.hidePageClutter-enabled #sideColumn,html.hidePageClutter-enabled aside.slickdealsSidebar{display:none!important}html.hidePageClutter-enabled #mainColumn,html.hidePageClutter-enabled main.redesignFrontpageDesktop__main{width:100%!important;max-width:100%!important}a[data-resolved-href]{position:relative;text-decoration:none!important}a[data-resolved-href] .dealCardGrid__title,a[data-resolved-href].dealCardGrid__title,a[data-resolved-href] .dealCard__title,a[data-resolved-href].dealCard__title{color:#2e7d32!important}.sdp-bypass-indicator{display:inline-block;width:12px;height:12px;margin-left:5px;background:#4CAF50;border-radius:50%}`;
+        const STATIC_CSS = `#sdPlusToastContainer{pointer-events:none}#sdPlusToastContainer>div{pointer-events:auto}#sdPlusNavMenu{position:relative}.sd-plus-menu-button{cursor:pointer;color:#333;font-weight:bold;padding:6px 10px;background:#fff;border:1px solid #ccc;border-radius:4px;display:inline-flex;align-items:center}.sd-plus-menu-dropdown{display:none}#sdPlusNavMenu.menu-open .sd-plus-menu-dropdown{display:block;position:absolute;top:100%;left:0;width:340px;background:#fff;border:1px solid #ccc;border-radius:8px;z-index:10000;font-family:Arial,sans-serif;font-size:13px;color:#333;text-align:left;box-shadow:0 4px 15px rgba(0,0,0,0.2)}#sdPlusMenuBody{padding:12px;max-height:85vh;overflow-y:auto}.filter-badge{display:inline-block;background:#ff5252;color:#fff;font-size:10px;font-weight:bold;border-radius:10px;padding:2px 6px;margin-left:5px}.filter-active{background:#e8f5e9!important;border-left:3px solid #34C759;padding-left:5px}.sd-plus-clear-btn{background:#FF9800!important;color:#fff}.sd-plus-section{border-bottom:1px solid #eee;margin-bottom:5px;padding-bottom:5px}.sd-plus-header{font-weight:bold;cursor:pointer;padding:8px 5px;background:#f9f9f9;display:flex;justify-content:space-between;border-radius:4px}.sd-plus-header:hover{background:#eee}.sd-plus-section.collapsed .sd-plus-content{display:none}.sd-plus-section.collapsed .arrow{transform:rotate(-90deg)}.sd-plus-content{padding:8px 5px}.switch-row{display:flex;justify-content:space-between;margin-bottom:8px;cursor:pointer;align-items:center}.sd-switch-input{display:none}.sd-switch-slider{position:relative;width:34px;height:18px;background:#ccc;border-radius:20px;transition:.3s}.sd-switch-slider:before{content:"";position:absolute;width:14px;height:14px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.3s}.sd-switch-input:checked+.sd-switch-slider{background:#34C759}.sd-switch-input:checked+.sd-switch-slider:before{transform:translateX(16px)}.control-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.control-group{margin-bottom:10px}.control-group span{display:block;margin-bottom:4px;color:#666;font-weight:500}.sd-plus-input-number{width:50px;padding:4px;border:1px solid #ddd;text-align:center;border-radius:4px}.sd-plus-input-text{width:60px;padding:4px;border:1px solid #ddd;border-radius:4px}.sd-plus-textarea{width:96%;padding:5px;border:1px solid #ddd;border-radius:4px;resize:vertical;min-height:40px;font-family:Arial}.sd-plus-select{padding:4px;border:1px solid #ddd;width:120px;border-radius:4px}.range-inputs{display:flex;gap:8px;align-items:center}.sd-plus-footer{display:flex;gap:5px;margin-top:15px;padding-top:10px;border-top:1px solid #eee}.sd-plus-footer button{flex:1;border:none;padding:8px;border-radius:4px;cursor:pointer;color:#fff;font-weight:bold}#sdPlusResetButton{background:#607d8b}.sd-plus-button-group button{background:#607d8b;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;color:#fff;width:32%}.sd-plus-hide{display:none!important}html.hidePageClutter-enabled .redesignFrontpageDesktop{display:block!important;width:96%!important;max-width:none!important;margin:0 auto!important}ul.frontpageGrid,ul.cmsDealFeed__dealContainer{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))!important;gap:20px!important;width:100%!important}.dealCardV3,.dealCard,[data-threadid]{width:auto!important;max-width:none!important;height:100%!important}html.priceFirst-enabled .dealCardGrid.dealCardVariant1{grid-template-areas:"userInfo" "image" "priceRow" "title" "extraInfo" "store" "actions"!important;grid-template-rows:repeat(7,auto)!important}html.priceFirst-enabled .dealCardVariant1__priceRow{grid-area:priceRow!important}html.showDiff-enabled .dealCardVariant1__priceRow[data-deal-percent]::after,html.showDiff-enabled .dealCardV3__priceContainer[data-deal-percent]::after,html.showDiff-enabled .dealCard__priceContainer[data-deal-percent]::after{content:"($" attr(data-deal-diff) " | " attr(data-deal-percent) "%)";display:block;width:100%;font-style:italic;margin-top:4px;color:#555;font-size:0.9em}.dealCardVariant1__priceRow,.dealCardV3__priceContainer,.dealCard__priceContainer{display:flex!important;flex-wrap:wrap!important;align-items:baseline;overflow:visible!important;height:auto!important;max-height:none!important}html.hidePageClutter-enabled #sideColumn,html.hidePageClutter-enabled aside.slickdealsSidebar{display:none!important}html.hidePageClutter-enabled #mainColumn,html.hidePageClutter-enabled main.redesignFrontpageDesktop__main{width:100%!important;max-width:100%!important}a[data-resolved-href]{position:relative;text-decoration:none!important}a[data-resolved-href] .dealCardGrid__title,a[data-resolved-href].dealCardGrid__title,a[data-resolved-href] .dealCard__title,a[data-resolved-href].dealCard__title{color:#2e7d32!important}.sdp-bypass-indicator{display:inline-block;width:12px;height:12px;margin-left:5px;background:#4CAF50;border-radius:50%}`;
 
         function updateHtmlClasses(s) {
             try {
@@ -1132,12 +1132,15 @@
 
                 if (s.hideFeedAds) {
                     css += ConstantsModule.SELECTORS.ads.join(',') + '{display:none!important}';
-                    // Banner/wallpaper ad slots render as grid <li>s with obfuscated, per-session
-                    // class names and no [data-threadid] — hide any grid item that holds no deal.
-                    css += 'ul.frontpageGrid>li:not(:has([data-threadid])){display:none!important}';
                 }
                 if (s.hidePageClutter) {
                     css += ConstantsModule.SELECTORS.clutterElements.join(',') + '{display:none!important}';
+                    // Non-deal grid items — expired-deal slots (a bare <li><button>) and banner/
+                    // wallpaper ad slots (obfuscated per-session classes, no [data-threadid]) — render
+                    // as grid <li>s holding no deal. JJ's call: treat them as page clutter rather than
+                    // ads, since this broad :not(:has()) sweeps up expired cards too. (Was under Hide
+                    // Ads in the first pass.) Note: also catches any future non-deal <li> in the grid.
+                    css += 'ul.frontpageGrid>li:not(:has([data-threadid])){display:none!important}';
                 }
                 if (s.hidePromoted) {
                     // Class-agnostic (sits on the <li> for grid cards, on the card for wrapper-less).
@@ -1184,13 +1187,12 @@
                     || card.closest?.('[data-threadid]')?.dataset.threadid;
                 const apiDeal = threadId ? context.data?.lookup(threadId) : undefined;
 
-                let currentPrice, originalPrice, votes, percent, isPromoted, source;
+                let currentPrice, originalPrice, votes, percent, source;
                 if (apiDeal) {
                     currentPrice = UtilsModule.parsePrice(apiDeal.finalPriceText);
                     originalPrice = UtilsModule.parsePrice(apiDeal.listPriceText);
                     votes = Number(apiDeal.socialVoteCount) || 0;
                     percent = Number(apiDeal.discount) || 0; // exact — no parse/rounding
-                    isPromoted = apiDeal.dealCardBadge?.variant === 'promoted'; // closes backlog #11
                     source = 'api';
                 } else {
                     currentPrice = UtilsModule.parsePrice(priceEl?.textContent);
@@ -1198,13 +1200,22 @@
                     votes = UtilsModule.parseHumanNumber(voteEl?.textContent);
                     percent = (!isNaN(currentPrice) && !isNaN(originalPrice) && originalPrice > currentPrice)
                         ? Math.round((1 - currentPrice / originalPrice) * 100) : 0;
-                    const badgeText = badgeEl?.textContent?.toLowerCase() || '';
-                    isPromoted = badgeText.includes('promoted') || badgeText.includes('sponsored');
                     source = 'dom';
                 }
 
+                // Promoted/Personalized: the *rendered badge* is ground truth. The API variant is
+                // unreliable — live data showed it returning 'foryou' or null on cards that still
+                // display a "Promoted" pill, and Personalized cards (AMEX/movie offers) aren't in any
+                // deal endpoint at all. So match the visible badge text, with the API variant as a
+                // backstop. (Per JJ: Personalized is bucketed in with Promoted.) Supersedes the old
+                // variant-only check that closed backlog #11 but missed these real-world cases.
+                const PROMO_RE = /promoted|sponsored|personalized/i;
+                const isPromoted = PROMO_RE.test(badgeEl?.textContent || '') || PROMO_RE.test(apiDeal?.dealCardBadge?.variant || '');
+
                 // hasData distinguishes a real deal from a structural element that merely matched
-                // the selector — preserves v32's "skip price-less cards" behavior.
+                // the selector — preserves v32's "skip price-less cards" behavior for highlight/sort/
+                // keyword. Price-less-but-badged cards are handled explicitly in processDealCard so
+                // Hide Promoted / Gold Tier Only still apply to them.
                 const hasData = !!apiDeal || !isNaN(currentPrice);
 
                 const data = {
@@ -1260,10 +1271,27 @@
                 }
 
                 const el = getDealData(card);
-                // Only bail on cards carrying no deal data at all (structural elements that merely
-                // matched the selector). A real deal — API-matched OR DOM-priced — proceeds even if
-                // some DOM refs are missing; each enhancement below guards its own elements.
-                if (!el || !el.hasData) return;
+                if (!el) return;
+
+                // Hide/promoted state lives on the wrapper: the <li> for grid cards, or the card
+                // itself for wrapper-less slots (carousel/banner cards have no <li> ancestor, so
+                // li-only toggles let those cards slip past every filter — diag showed ~20).
+                const wrapper = li || card;
+
+                // Price-less-but-badged cards (Personalized/AMEX offers, sweepstakes "See Official
+                // Rules" slots) carry a badge but no deal data, so they'd bail before the highlight/
+                // sort/keyword pipeline below. They still need promoted-state AND the "only" filters:
+                // they're never gold or free, so Gold Tier Only / Free Only must hide them, and Hide
+                // Promoted catches them via the class. Without this, Gold Tier Only leaks promo cards.
+                if (!el.hasData) {
+                    const s0 = context.settings.getSettings();
+                    card.classList.toggle('isPromoted', el.isPromoted);
+                    wrapper.classList.toggle('sdp-has-promoted', el.isPromoted);
+                    const hide0 = s0.goldTierOnly || s0.freeOnly || (s0.hidePromoted && el.isPromoted);
+                    wrapper.classList.toggle('sd-plus-hide', hide0);
+                    wrapper.style.display = hide0 ? 'none' : '';
+                    return;
+                }
 
                 const { currentPrice, originalPrice, votes, percent, isPromoted } = el;
 
@@ -1292,13 +1320,13 @@
                 else if (meetsDiff) card.classList.add('highlightDiff');
                 card.classList.toggle('isFree', isFree);
                 card.classList.toggle('isPromoted', isPromoted);
-                // Hide/promoted state lives on the wrapper: the <li> for grid cards, or the card
-                // itself for wrapper-less slots (carousel/banner cards have no <li> ancestor, so
-                // li-only toggles let those cards slip past every filter — diag showed ~20).
-                const wrapper = li || card;
                 wrapper.classList.toggle('sdp-has-promoted', isPromoted);
 
-                let shouldHide = (s.freeOnly && !isFree) || (s.goldTierOnly && !isGold);
+                // hidePromoted is also enforced by the .sdp-has-promoted{display:none!important} CSS
+                // rule, so this JS clause is belt-and-suspenders — it keeps the inline display in sync
+                // with that rule (mirrors the no-data hide0 path) rather than relying on !important
+                // beating the inline style on reprocess.
+                let shouldHide = (s.freeOnly && !isFree) || (s.goldTierOnly && !isGold) || (s.hidePromoted && isPromoted);
                 if (!shouldHide && !isNaN(currentPrice)) {
                     const min = parseFloat(s.minPrice);
                     const max = parseFloat(s.maxPrice);
@@ -1656,6 +1684,7 @@
                             cardFlexDirection: cs.flexDirection,
                             cardGridTemplateAreas: cs.gridTemplateAreas,
                             cardGridTemplateColumns: cs.gridTemplateColumns,
+                            cardGridTemplateRows: cs.gridTemplateRows,
                             titleIdx: kids.indexOf(title),
                             priceIdx: kids.indexOf(price),
                             samePar: !!(title && price) && title.parentNode === price.parentNode,
