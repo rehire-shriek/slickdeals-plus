@@ -189,7 +189,10 @@ cmd_publish() {
   git push origin "$TAG"
   c_ok "tagged + pushed $TAG"
 
-  local TMP; TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+  # Expand $TMP into the trap string now (while it's in scope) — a single-quoted
+  # trap would dereference $TMP at script EXIT, after this function's `local` is gone,
+  # tripping `set -u` ("TMP: unbound variable") and exiting non-zero on a successful publish.
+  local TMP; TMP="$(mktemp -d)"; trap "rm -rf '$TMP'" EXIT
   cp "$CUR" "$TMP/$ASSET_NAME"
   printf '%s\n' "$NOTES" | gh release create "$TAG" "$TMP/$ASSET_NAME" --title "$TAG" --notes-file -
   c_ok "release $TAG published with asset $ASSET_NAME"
