@@ -11,6 +11,30 @@ Format: `[Version] - Date`
 
 ---
 
+## [33.0.0] - 2026-06-06
+
+API-enriched rewrite for the Slickdeals frontpage React→Vue/Nuxt 3 migration, which renamed every card class and silently broke v32.3.9 (hardcoded selectors matched nothing). v33 re-anchors on the surviving `[data-threadid]` attribute and the unchanged JSON deal API.
+
+### Added
+- **[Feature] Deal data layer** - fetches the 3 same-origin JSON endpoints the page already calls (missed-deals, recommendation-carousel, promoted-content) and normalizes them into a `Map<threadId, deal>` (exact discount, numeric vote count, promoted variant). Enhancement-only: if every fetch fails the script falls back to pure DOM scraping, so there is zero regression risk.
+- **[Feature] `window.sdPlus.diag()`** - live card layout/selector/API probe (reports `gridTemplateRows`) plus `window.sdPlus.data` lookup, so the Nuxt card can be inspected without pasting fragile console snippets.
+
+### Fixed
+- **[Fix] Selectors retargeted** to the Nuxt card (`.dealCardGrid` / `.dealCardVariant1__*`), survivors-first with `[data-threadid]` as the anchor; legacy classes kept as multi-generation fallbacks.
+- **[Fix] Price-first** reorders via a CSS `grid-template-areas` + `grid-template-rows:repeat(7,auto)` override (the new card is a fixed-track named-area grid, so DOM reorder is ignored and the title would otherwise overflow into the extra-info line).
+- **[Fix] Promoted/Personalized detection** reads the rendered badge text OR the API variant - the API variant is unreliable (returns `foryou`/`null` on cards that still show a "Promoted" pill, and Personalized cards have no API entry). Personalized cards are bucketed with Promoted.
+- **[Fix] Price-diff badge** no longer clipped (`overflow:visible` on the price row).
+- **[Fix] Filtering** hides via the wrapper (`<li>` or the card itself) so wrapper-less carousel/banner cards stop slipping past every filter; price-less badged cards (Personalized/sweepstakes) are also covered by Gold Tier Only / Free Only / Hide Promoted.
+- **[Fix] Sort + feed observer** iterate both frontpage grids.
+
+### Changed
+- **[Refactor] Hide Ads** now covers explicit ad units only; the broad non-deal/expired-card hide moved to **Hide Page Clutter**.
+
+### Notes
+- Auto-update means the broken v32.3.9 is what installed users currently have - v33 ships the fix to the live channel.
+
+---
+
 ## [32.3.9] - 2026-05-28
 
 Auto-update enablement (backlog item #6).
