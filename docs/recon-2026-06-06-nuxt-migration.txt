@@ -1,0 +1,598 @@
+=== SLICKDEALS+ RECON v0.1.0 — SELECTOR HEALTH ===
+url: https://slickdeals.net/
+title: Slickdeals: The Best Deals, Coupons, Promo Codes & Discounts
+Diffing v32.3.9 ConstantsModule.SELECTORS against the live DOM. 0 = DEAD (this is what broke).
+
+navBar: 1 match  ✅
+sideColumn: 1 match  ✅
+        0  #sideColumn
+        1  aside.slickdealsSidebar
+mainContent: 0 matches  ❌ DEAD
+        0  #mainColumn
+        0  main.redesignFrontpageDesktop__main
+pageGrid: 0 matches  ❌ DEAD
+clutterElements: 4 matches  ✅
+        0  #sideColumn
+        1  aside.slickdealsSidebar
+        0  [data-section-title="Just For You"]
+        1  .frontpageRecommendationCarousel
+        0  .justForYouCarousel
+        1  .dealAlertsForYou
+        1  li.dealAlertsForYou
+ads: 2 matches  ✅
+        0  #crt-adblock-a
+        0  #crt-adblock-b
+        1  .frontpageGrid__bannerAd
+        0  .ad
+        0  .variableWidthAd
+        0  .variableHeightAd
+        0  .frontpageAd__middleBanner
+        0  [data-googleQueryId]
+        0  .adunit
+        1  div[data-adlocation]
+dealFeed: 2 matches  ✅
+        2  ul.frontpageGrid
+        0  ul.cmsDealFeed__dealContainer
+dealCard: 436 matches  ✅
+        0  .dealCardV3
+        0  .dealCard
+      436  [data-threadid]
+dealCardContent: 0 matches  ❌ DEAD
+        0  .dealCard__content
+        0  .dealCardV3__mainContent
+dealPrice: 0 matches  ❌ DEAD
+        0  .dealCardV3__price
+        0  .dealCard__price
+originalPrice: 0 matches  ❌ DEAD
+        0  .dealCardV3__originalPrice
+        0  .dealCard__originalPrice
+voteCount: 436 matches  ✅
+dealBadge: 85 matches  ✅
+       85  .dealCardBadge
+        0  .dealCardV3__badgeContainer
+priceContainer: 0 matches  ❌ DEAD
+        0  .dealCardV3__priceContainer
+        0  .dealCard__priceContainer
+dealTitle: 0 matches  ❌ DEAD
+        0  a.dealCard__title
+        0  a.dealCardV3__title
+
+Reading: if dealCard / dealFeed / dealTitle / dealPrice are 0, that is the silent break —
+processAllCards() finds nothing and every feature no-ops. navBar=0 means the settings menu vanished.
+
+=== SLICKDEALS+ RECON v0.1.0 — CARD DISCOVERY ===
+url: https://slickdeals.net/
+Heuristic (ignores v32.3.9 classes): containers whose children are mostly one shape = lists; scored by deal-likeness ($price + link + threadid).
+
+--- TOP CANDIDATE FEEDS (28 lists found, showing up to 4) ---
+[1] score=5  251/251 children match
+     feed container : ul.frontpageGrid.frontpageMissedDeals.frontpageGrid--grid.frontpageMissedDeals--dealCardVariant
+     card signature : li.frontpageGrid__feedItem
+     signals        : price=true link=true threadid=true
+[2] score=5  167/169 children match
+     feed container : ul.frontpageGrid.frontpageSlickdealsGrid.frontpageGrid--grid.frontpageSlickdealsGrid--dealCardVariant
+     card signature : li.frontpageGrid__feedItem
+     signals        : price=true link=true threadid=true
+[3] score=5  20/20 children match
+     feed container : div.baseCarouselV2__carousel
+     card signature : div.frontpageRecommendationCarousel__feedItem
+     signals        : price=true link=true threadid=true
+[4] score=3  5/5 children match
+     feed container : ul.sidebarDealsRedesign__list
+     card signature : li.sidebarDealsRedesign__deal
+     signals        : price=true link=true threadid=false
+
+--- BEST-GUESS CARD (sample from top candidate) ---
+feed selector : ul.frontpageGrid.frontpageMissedDeals.frontpageGrid--grid.frontpageMissedDeals--dealCardVariant
+card selector : li.frontpageGrid__feedItem
+
+role guesses (map these onto the old SELECTORS keys):
+  dealTitle: a.dealCardGrid__title
+        text: "Marshall Major V On-Ear Wireless Bluetooth Headphones (Black …[+1 chars]"
+  dealPrice: span.dealCardVariant1__finalPrice
+        text: "$90"
+  originalPrice: span.dealCardVariant1__listPrice
+        text: "$160"
+  voteCount: div.dealCardSocialControls__voteButton.dealCardSocialControls__voteButton--null
+        text: "26"
+  dealBadge: (not found)
+
+--- DRAFT SELECTORS (paste-ready starting point — VERIFY each against the outline below) ---
+const SELECTORS = {
+    dealFeed: 'ul.frontpageGrid.frontpageMissedDeals.frontpageGrid--grid.frontpageMissedDeals--dealCardVariant',
+    dealCard: 'li.frontpageGrid__feedItem',
+    dealTitle: 'a.dealCardGrid__title',
+    dealPrice: 'span.dealCardVariant1__finalPrice',
+    originalPrice: 'span.dealCardVariant1__listPrice',
+    voteCount: 'div.dealCardSocialControls__voteButton.dealCardSocialControls__voteButton--null',
+    dealBadge: '/* not found */',
+    // navBar / ads / clutter: confirm separately from the health report + page inspection
+};
+
+--- SAMPLE CARD OUTLINE (anchors, $-prices, classed leaves) ---
+      div.dealCardUserInfo__text  →  "Found by Eragorn"
+      span.slickdealsTimestamp.dealCardUserInfo__timestamp  →  "Yesterday 05:11 PM"
+      a.dealCardImage.dealCardGrid__image href="/f/19574214-marshall-major-v-on-ear-wireless-bluetooth-headp …[+76 chars]"  →  ""
+    a.dealCardGrid__title href="/f/19574214-marshall-major-v-on-ear-wireless-bluetooth-headp …[+76 chars]"  →  "Marshall Major V On-Ear Wireless Bluetooth Headpho …[+11 chars]"
+    a.dealCardVariant1__priceRow href="/f/19574214-marshall-major-v-on-ear-wireless-bluetooth-headp …[+76 chars]"  →  "$90$160"
+      span.dealCardVariant1__finalPrice  →  "$90"
+      span.dealCardVariant1__listPrice  →  "$160"
+    div.dealCardVariant1__extraInfo  →  "+ Free S&H"
+    span.dealCardVariant1__storeLink  →  "Amazon"
+            span.dealCardSocialControls__voteCount  →  "26"
+          a.dealCardSocialControls__commentsLink.dealCardSocialControls__socialControl href="/f/19574214-marshall-major-v-on-ear-wireless-bluetooth-headp …[+91 chars]"  →  "5"
+            span.dealCardSocialControls__commentsCount  →  "5"
+
+--- STABLE ANCHORS on the card (data-* / aria-label — survive redesigns better than classes) ---
+  [data-v-23e7a038=""]
+  [data-v-cb6a1e68=""]
+  [data-v-dbb6ec98=""]
+  [data-threadid="19574214"]
+  [data-uniqueid="19574214"]
+  [data-extension-deal="1"]
+  [data-v-eee1464d=""]
+  [data-v-d9754e5c=""]
+  [data-v-a024ac91=""]
+  [data-v-179d746b=""]
+  [data-v-bf151f98=""]
+  [data-v-5e63755b=""]
+  [aria-label="Comments icon"]
+  [data-v-978475a9=""]
+
+--- SANITIZED CARD HTML (truncated) ---
+<li data-v-23e7a038="" class="frontpageGrid__feedItem"><div data-v-cb6a1e68="" data-v-dbb6ec98="" data-v-23e7a038="" class="dealCardGrid dealCardGrid--medium dealCardVariant1" data-threadid="19574214" data-uniqueid="19574214" frontpageliststyle="grid" data-extension-deal="1" style="--ccc3d102: 8px; --a53a2a60: 135px; --v27bdd206: 135px;"><div data-v-eee1464d="" data-v-cb6a1e68="" class="dealCardUserInfo dealCardGrid__userInfo"><img data-v-d9754e5c="" data-v-eee1464d="" class="lazyImage userAvatar userAvatar--circle userAvatar--lazy dealCardUserInfo__avatar" width="26" height="26" src="/attachment/avatar/1/4/8/5/3/3/0/150x150/avatar.static?dateline=1592808948" loading="lazy" style="--v6174caa2: 26px;"><div data-v-eee1464d="" class="dealCardUserInfo__text">Found by Eragorn</div><span data-v-a024ac91="" data-v-eee1464d="" class="slickdealsTimestamp dealCardUserInfo__timestamp" title="Yesterday 05:11 PM">Yesterday 05:11 PM</span></div><div data-v-cb6a1e68="" class="dealCardGrid__imageContainer"><div data-v-cb6a1e68="" class="dealCardGrid__badges"></div><a data-v-179d746b="" data-v-cb6a1e68="" href="/f/19574214-marshall-major-v-on-ear-wireless-bluetooth-headphones-black-90-free-shipping?src=frontpage&amp;attrsrc=Frontpage%3AType%3AMissed" target="_self" class="dealCardImage dealCardGrid__image" style="--v08a68a0c: 135px;"><img data-v-179d746b="" class="lazyImage dealCardImage__image" width="135" height="135" src="https://static.slickdealscdn.com/attachment/1/4/8/5/3/3/0/300x300/20531211.thumb" srcset="https://static.slickdealscdn.com/attachment/1/4/8/5/3/3/0/200x200/20531211.thumb 200w, https://static.slickdealscdn.com/attachment/1/4/8/5/3/3/0/300x300/20531211.thumb 300w, https://static.slickdealscdn.com/attachment/1/4/8/5/3/3/0/450x450/20531211.thumb 450w" sizes="135px" loading="lazy" alt=""></a></div><a data-v-cb6a1e68="" class="dealCardGrid__title" href="/f/19574214-marshall-major-v-on-ear-wireless-bluetooth-headphones-black-90-free-shipping?src=frontpage&amp;attrsrc=Frontpage%3AType%3AMissed" target="_self">Marshall Major V On-Ear Wireless Bluetooth Headphones (Black)</a><a data-v-dbb6ec98="" class="dealCardVariant1__priceRow" href="/f/19574214-marshall-major-v-on-ear-wireless-bluetooth-headphones-black-90-free-shipping?src=frontpage&amp;attrsrc=Frontpage%3AType%3AMissed" target="_self"><span data-v-dbb6ec98="" class="dealCardVariant1__finalPrice">$90</span><span data-v-dbb6ec98="" class="dealCardVariant1__listPrice">$160</span></a><div data-v-dbb6ec98="" class="dealCardVariant1__extraInfo">+ Free S&amp;H</div><span data-v-dbb6ec98="" class="dealCardVariant1__storeLink">Amazon</span><div data-v-cb6a1e68="" class="dealCardGrid__actions"><div data-v-bf151f98="" class="dealCardSocialControls dealCardSocialControls--showShareIcon"><div data-v-bf151f98="" class="dealCardSocialControls__likesAndComments"><div data-v-bf151f98="" class="dealCardSocialControls__voteButton dealCardSocialControls__voteButton--null" role="button" tabindex="0" aria-haspopup="menu"><span data-v-bf151f98="" class="dealCardSocialControls__thumbIcon">
+</span><span data-v-bf151f98="" class="dealCardSocialControls__voteCount">26</span><div data-v-bf151f98="" role="menu" class="dealCardSocialControls__votingPopup"><button data-v-bf151f98="" class="dealCardSocialControls__buttonReset dealCardSocialControls__up"><span data-v-5e63755b="" data-v-bf151f98="" class="baseIcon dealCardSocialControls__thumb">
+</span></button><button data-v-bf151f98="" class="dealCardSocialControls__buttonReset dealCardSocialControls__down"><span data-v-5e63755b="" data-v-bf151f98="" class="baseIcon dealCardSocialControls__thumb">
+</span></button></div></div><a data-v-bf151f98="" class="dealCardSocialControls__commentsLink dealCardSocialControls__socialControl" href="/f/19574214-marshall-major-v-on-ear-wireless-bluetooth-headphones-black-90-free-shipping?src=frontpage&amp;attrsrc=Frontpage%3AType%3AMissed#commentsHeader" target="_self"><span data-v-bf151f98="" class="dealCardSocialControls__commentIconContainer"><span data-v-5e63755b="" data-v-bf151f98="" class="baseIcon dealCardSocialControls__commentIcon">
+</span></span><span data-v-bf151f98="" class="dealCardSocialControls__commentsCount">5</span></a></div><div data-v-978475a9="" data-v-bf151f98="" class="dealCardShareLink dealCardSocialControls__share dealCardSocialControls__socialControl"><button data-v-978475a9="" class="dealCardShareLink__button"><span data-v-5e63755b="" data-v-978475a9="" class="baseIcon dealCardShareLink__buttonIcon">
+</span></button></div></div></div></div></li>
+
+=== SLICKDEALS+ RECON v0.1.0 — NETWORK / HYDRATION ===
+url: https://slickdeals.net/
+captured 120 fetch/xhr calls
+
+--- HYDRATION (deals baked into the page at load?) ---
+<script #productionConfig>: 34KB  dealish=false
+<script #featureFlags>: 0KB  dealish=false
+<script #__NUXT_DATA__>: 267KB  dealish=true
+   shape: [3777 × [2 × str(15)]]
+
+--- 🎯 DEAL-LIKE API RESPONSES (4) — the live feed endpoint, if any ---
+  [2] fetch GET /frontpage/recommendation-carousel/recommendations?count=20&useForYouBadge=1&useFrontpageBadge=0&useCategoryBadge=0&nuxt=1
+     res(200 application/json)  shape: { jfyDeals: [20 × { uniqueId: str(8), threadId: number, threadFirstPostId: number, frontpagePostNo: null, threadIsoDatetime: str(25), authorAvatarUrl: str(76), authorUserName: str(4), dealCardBadge: { variant: str(6), newCheckTimestamp: null }, dealTitle: str(105), dealAdditionalInfo: str(0), dealImageUrl: str(78), dealThreadUrl: str(191), dealShareUrl: str(78), isFireDeal: boolean, isFrontpageDeal: boolean, isPopularDeal: boolean, isNew: boolean, isExpired: boolean, isProductCatalogOffer: boolean, hasRebate: boolean, listPriceText: str(6), finalPriceText: str(4), discount: number, storeId: number, storeName: str(12), storeUrl: str(0), storeUrlNoFollow: boolean, disableExtensionDtm: boolean, disableCsn: boolean, socialVoteCount: number, socialVoteStatus: null, socialCommentCount: number, viewsCount: number, thirdPartyPixel: null, recommendationId: null, dealAdminConfig: null, showUserInfo: boolean, showSocialControls: boolean, storeLogoUrl: null, forumId: number, … }], frontpageRecommendations: [], mobileAdUnits: [], headline: str(12), showJfyTooltip: boolean }
+     sample: {
+ "jfyDeals": [
+  {
+   "uniqueId": "19594491",
+   "threadId": 19594491,
+   "threadFirstPostId": 184648350,
+   "frontpagePostNo": null,
+   "threadIsoDatetime": "2026-06-04T09:28:43-07:00",
+   "authorAvatarUrl": "/attachment/avatar/2/6/8/0/6/1/2/1/150x150/avatar.static?dateline=1779522304",
+   "authorUserName": "Dr.W",
+   "dealCardBadge": {
+    "variant": "foryou",
+    "newCheckTimestamp": null
+   },
+   "dealTitle": "HP OmniBook 7 Flip 16 (Refurb): 16\" 3K 120Hz OLED Touch, Intel Ultra 7 258V, 32GB LPDDR5, 1TB SSD $699.99",
+   "dealAdditionalInfo": "",
+   "dealImageUrl": "https://static.slickdealscdn.com/attachment/2/5/4/6/2/4/450x450/20587440.thumb",
+   "dealThreadUrl": "/f/19594491-hp-omnibook-7-flip-16-refurb-16-3k-120hz-oled-touch-intel-ultra-7-258v-32gb-lpddr5-1tb-ssd-699-99?attrsrc=JFYCarousel%3APosition%3A1%7CJFYCarousel%3AType%3Athread&src=jfy_carousel",
+   "dealShareUrl": "https://slickdeals.net/sh/thread-19594491/e/3/c/deal-card-frontpage/u/1057687/",
+   "isFireDeal": false,
+   "isFrontpageDeal": false,
+   "isPopularDeal": true,
+   "isNew": false,
+   "isExpired": false,
+   "isProductCatalogOffer": false,
+   "hasRebate": false,
+   "listPriceText": "$1,600",
+   "finalPriceText": "$700",
+   "discount": 56,
+   "storeId": 9121,
+   "storeName": "Micro Center",
+   "storeUrl": "",
+   "storeUrlNoFollow": true,
+   "disableExtensionDtm": true,
+   "disableCsn": false,
+   "socialVoteCount": 12,
+   "socialVoteStatus": null,
+   "socialCommentCount": 14,
+   "viewsCount": 4747,
+   "thirdPartyPixel": null,
+   "recommendationId": null,
+   "dealAdminConfig": null,
+   "showUserInfo": true,
+   "showSocialControls": true,
+   "storeLogoUrl": null,
+   "forumId": 9,
+   "lastPostAt": "2026-06-06T03:51:22-07:00",
+   "lastPostId": 184681572,
+   "lastPostUsername": "ashyee",
+   "itemVariant": "control"
+  },
+  {
+   "uniqueId": "19589724",
+   "threadId": 19589724,
+   "threadFirstPostId": 184619769,
+   "frontpagePostNo": null,
+   "threadIsoDatetime": "2026-06-03T01:39:41-07:00",
+   "authorAvatarUrl": "/attachment/avatar/1/1/7/1/5/2/7/150x150/avatar.static?dateline=1659068147",
+   "authorUserName": "phoinix",
+   "dealCardBadge": {
+    "variant": "foryou",
+    "newCheckTimestamp": null
+   },
+   "dealTitle": "$89.97* | TP-Link Deco Outdoor WiFi (X50-Outdoor) + 15% Back w/ Prime Visa Card at Amazon",
+   "dealAdditionalInfo": "",
+   "dealImageUrl": "https://static.slickdealscdn.com/attachment/1/1/7/1/5/2/7/450x450/20574408.thumb",
+   "dealThreadUrl": "/f/19589724-89-97-tp-link-deco-ou …[+34440 chars]
+  [3] fetch GET /frontpage/promoted-content/json?nuxt=1
+     res(200 application/json)  shape: [18 × { uniqueId: str(8), threadId: number, threadFirstPostId: number, frontpagePostNo: null, threadIsoDatetime: str(25), authorAvatarUrl: str(72), authorUserName: str(16), dealCardBadge: { variant: str(8), newCheckTimestamp: null }, dealTitle: str(45), dealAdditionalInfo: str(0), dealImageUrl: str(46), dealThreadUrl: str(932), dealShareUrl: str(78), isFireDeal: boolean, isFrontpageDeal: boolean, isPopularDeal: boolean, isNew: boolean, isExpired: boolean, isProductCatalogOffer: boolean, hasRebate: boolean, listPriceText: str(3), finalPriceText: str(10), discount: number, storeId: number, storeName: str(6), storeUrl: str(41), storeUrlNoFollow: boolean, disableExtensionDtm: boolean, disableCsn: boolean, socialVoteCount: number, socialVoteStatus: null, socialCommentCount: number, viewsCount: number, thirdPartyPixel: null, recommendationId: null, dealAdminConfig: null, showUserInfo: boolean, showSocialControls: boolean, storeLogoUrl: null, forumId: number, … }]
+     sample: [
+ {
+  "uniqueId": "19420215",
+  "threadId": 19420215,
+  "threadFirstPostId": 183646278,
+  "frontpagePostNo": null,
+  "threadIsoDatetime": "2026-06-04T16:56:24-07:00",
+  "authorAvatarUrl": "/attachment/avatar/6/2/0/0/0/9/150x150/avatar.static?dateline=1582325241",
+  "authorUserName": "Immortalsolitude",
+  "dealCardBadge": {
+   "variant": "promoted",
+   "newCheckTimestamp": null
+  },
+  "dealTitle": "Vertvie Women's Wireless Jelly Bras (various)",
+  "dealAdditionalInfo": "",
+  "dealImageUrl": "/attachment/3/8/8/1/8/1/450x450/20590788.thumb",
+  "dealThreadUrl": "https://slickdeals.net/azpp?e=eyJ2IjoiMS4xNCIsImF2Ijo1MDg2MjAsImF0Ijo3MSwiYnQiOjQ4LCJjbSI6NTg3MzA0NTE1LCJjaCI6MzkyOTMsImNrIjp7fSwiY3IiOjkxMzExMjY5NCwiZGkiOiI4NjBjZDI0Y2E4MmM0NzgwYjcxZGJiMGIxYjFlMTAzZCIsImRqIjowLCJpaSI6IjU3ZDk3ODA0OTU5MDQ0ZTI5YzZjYjgzM2ZhMjE0ZjYxIiwiZG0iOjMsImZjIjoxMDg5MjE2MTA2LCJmbCI6ODYzMzMxOTU1LCJpcCI6IjcwLjExNy4xOTIuMTUiLCJudyI6MTAyOTMsInBjIjowLCJvcCI6MCwibXAiOjAsImVjIjowLCJnbSI6MCwiZXAiOm51bGwsInByIjoxNTc0MTEsInJ0IjoxLCJycyI6NTAwLCJzYSI6Ijg2Iiwic2IiOiJpLTBhMjk5MzljODU3Njc1N2ZmIiwic3AiOjM1MDQzMTQsInN0IjoxMDg4OTI5LCJ0ciI6dHJ1ZSwidWsiOiJkNDFkMTQ0NjNjYzUxMWYxYTBmZmNhYTFjOTRkMmU0ZSIsInRzIjoxNzgwNzg0ODgwMzI0LCJiZiI6dHJ1ZSwicG4iOiJmcERlYWxzIiwiZ2MiOnRydWUsImdDIjp0cnVlLCJncyI6Im5vbmUiLCJ0eiI6IkFtZXJpY2EvTG9zX0FuZ2VsZXMiLCJ1ciI6Imh0dHBzOi8vc2xpY2tkZWFscy5uZXQvcGFpZFBsYWNlbWVudHMucGhwP3RocmVhZGlkPTE5NDIwMjE1JnNyYz1mYS0lY29udmVyc2lvbmlkJSJ9&s=WBNg2M7dBIaIMimlkUNn007DYsE&subdomain=e-10293&prop=azcid-1089216106",
+  "dealShareUrl": "https://slickdeals.net/sh/thread-19420215/e/3/c/deal-card-frontpage/u/1057687/",
+  "isFireDeal": true,
+  "isFrontpageDeal": false,
+  "isPopularDeal": false,
+  "isNew": false,
+  "isExpired": false,
+  "isProductCatalogOffer": false,
+  "hasRebate": false,
+  "listPriceText": "$30",
+  "finalPriceText": "from $9.50",
+  "discount": 68,
+  "storeId": 1,
+  "storeName": "Amazon",
+  "storeUrl": "https://slickdeals.net/promo-codes/amazon",
+  "storeUrlNoFollow": true,
+  "disableExtensionDtm": true,
+  "disableCsn": false,
+  "socialVoteCount": 291,
+  "socialVoteStatus": null,
+  "socialCommentCount": 94,
+  "viewsCount": 0,
+  "thirdPartyPixel": null,
+  "recommendationId": null,
+  "dealAdminConfig": null,
+  "showUserInfo": true,
+  "showSocialControls": true,
+  "storeLogoUrl": null,
+  "forumId": 9,
+  "lastPostAt": "2026-06-06T11:36:30-07:00",
+  "lastPostId": 184687746,
+  "lastPostUsername": "NavyApparel180",
+  "itemVariant": null
+ },
+ {
+  "uniqueId": "19590954",
+  "threadId": 19590954, …[+41710 chars]
+  [11] fetch GET /web-api/frontpage/missed-deals/?isReturningVisitor=true&showExpired=true
+     res(200 application/json)  shape: { deals: [289 × { uniqueId: str(8), threadId: number, threadFirstPostId: number, frontpagePostNo: number, threadIsoDatetime: str(25), authorAvatarUrl: str(74), authorUserName: str(7), dealCardBadge: null, dealTitle: str(61), dealAdditionalInfo: str(10), dealImageUrl: str(80), dealThreadUrl: str(136), dealShareUrl: str(78), isFireDeal: boolean, isFrontpageDeal: boolean, isPopularDeal: boolean, isNew: boolean, isExpired: boolean, isProductCatalogOffer: boolean, hasRebate: boolean, listPriceText: str(4), finalPriceText: str(3), discount: number, storeId: number, storeName: str(6), storeUrl: str(0), storeUrlNoFollow: boolean, disableExtensionDtm: boolean, disableCsn: boolean, socialVoteCount: number, socialVoteStatus: null, socialCommentCount: number, viewsCount: number, thirdPartyPixel: null, recommendationId: null, dealAdminConfig: null, showUserInfo: boolean, showSocialControls: boolean, storeLogoUrl: str(83), forumId: number, … }] }
+     sample: {
+ "deals": [
+  {
+   "uniqueId": "19574214",
+   "threadId": 19574214,
+   "threadFirstPostId": 184532607,
+   "frontpagePostNo": 1280523,
+   "threadIsoDatetime": "2026-06-05T15:11:59-07:00",
+   "authorAvatarUrl": "/attachment/avatar/1/4/8/5/3/3/0/150x150/avatar.static?dateline=1592808948",
+   "authorUserName": "Eragorn",
+   "dealCardBadge": null,
+   "dealTitle": "Marshall Major V On-Ear Wireless Bluetooth Headphones (Black)",
+   "dealAdditionalInfo": "+ Free S&H",
+   "dealImageUrl": "https://static.slickdealscdn.com/attachment/1/4/8/5/3/3/0/450x450/20531211.thumb",
+   "dealThreadUrl": "/f/19574214-marshall-major-v-on-ear-wireless-bluetooth-headphones-black-90-free-shipping?src=frontpage&attrsrc=Frontpage%3AType%3AMissed",
+   "dealShareUrl": "https://slickdeals.net/sh/thread-19574214/e/3/c/deal-card-frontpage/u/1057687/",
+   "isFireDeal": false,
+   "isFrontpageDeal": true,
+   "isPopularDeal": true,
+   "isNew": false,
+   "isExpired": false,
+   "isProductCatalogOffer": false,
+   "hasRebate": false,
+   "listPriceText": "$160",
+   "finalPriceText": "$90",
+   "discount": 43,
+   "storeId": 1,
+   "storeName": "Amazon",
+   "storeUrl": "",
+   "storeUrlNoFollow": false,
+   "disableExtensionDtm": true,
+   "disableCsn": false,
+   "socialVoteCount": 26,
+   "socialVoteStatus": null,
+   "socialCommentCount": 5,
+   "viewsCount": 4698,
+   "thirdPartyPixel": null,
+   "recommendationId": null,
+   "dealAdminConfig": null,
+   "showUserInfo": true,
+   "showSocialControls": true,
+   "storeLogoUrl": "https://static.slickdealscdn.com/images/slickdeals/storelogo/75x38/1.png?1658177017",
+   "forumId": 9,
+   "lastPostAt": "2026-06-06T06:17:45-07:00",
+   "lastPostId": 184682988,
+   "lastPostUsername": "haysouse",
+   "itemVariant": null
+  },
+  {
+   "uniqueId": "19576725",
+   "threadId": 19576725,
+   "threadFirstPostId": 184545414,
+   "frontpagePostNo": 1280520,
+   "threadIsoDatetime": "2026-06-05T15:10:38-07:00",
+   "authorAvatarUrl": "/images/avatar-150.png",
+   "authorUserName": "Rokket",
+   "dealCardBadge": null,
+   "dealTitle": "Select Accounts: 3-Pk 0.15-Oz ChapStick SPF 15 Original Lip Balm",
+   "dealAdditionalInfo": "w/ S&S",
+   "dealImageUrl": "https://static.slickdealscdn.com/attachment/1/3/5/8/6/2/3/450x450/20538198.thumb",
+   "dealThreadUrl": "/f/19576725-3-pack-0-15-ounce-chapstick-original-lip-balm-spf-15-2-14-w-s-s-free-shipping-w-prime-or-on-35?src=frontpage&attrsrc=Frontpage%3AType%3AMissed",
+   "dealShareUrl": "https://slickdeals.net/sh/thread-19576725/e/3/c/deal-card-fro …[+496233 chars]
+  [48] fetch POST https://4.stg.html-load.cc/feed/8p2/b1e/9jj/slickdeals.net/sur/ejhebjjofrzr8r83jerviocp7rvpcjr8iocp3jeer8o3cemr02frqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw
+     res(200 text/plain)  shape: { id: str(36), cur: str(3), seatbid: [1 × { seat: str(5), bid: [1 × { adm: …, id: …, impid: …, price: …, adomain: …, crid: …, cattax: …, cat: …, dealid: …, w: …, h: …, slotinpod: …, mtype: …, ext: … }] }] }
+     sample: {
+ "id": "c56bebeb-8344-45fe-8bcb-ba49deb497c7",
+ "cur": "USD",
+ "seatbid": [
+  {
+   "seat": "OpenX",
+   "bid": [
+    {
+     "adm": "<!-- Exchange: OpenX TAGID: 6a698e2ec38604c6 DSPID: 537073292 CRID: q0a45hr4 --><div id='beacon_52711' style='position:absolute;left:0px ;top:0px;visibility:hidden;'><img src='https://ox-rtb-us-central1.openx.net/win/prebidjs?p=FIRST&t=2DAABBgABAAECAAIBAAsAAgAAAdocGApJU3F6a0g2RjQ2HBbJ182Ok_DDx-oBFoG1ou6K-8fxqAEAHBa968WZ9arJ9GIWxdbsiNvOw5GOAQAW4Pukog0VBDgkZGY1ZTRhYzktNTcyYS00Njg2LTlkY2UtNTE5MTVmM2U2NzNlHBUEGBhkZWFsX3Rocm90dGxpbmdfc3RhZ2UxYmIYB2NvbnRyb2wAOQwVBgAsHBUCABwVAgAcFQIAHBUCAAAcJrT87JgEFQQ2_vvsmAQWjvmYgAQlAhUCpt4QFt4QFt4QFmQWZBZkFmQWqBIW3hAW3hAAHBwsFoCxiqS77IOtKhbrsrXZ5-KA56UBAAAWmNqYgAQW6M_yggQWrP6igwQW8s_yggQVGBwU9AMU2AQAFQQmqBIWqBIWqBIRNQ4mqBI0AgAsLBaF0731lvSkXhaRkc_w5cKp2sMBABbg-6SiDQYomNqYgAQW6M_yggQW8s_yggQWrP6igwQYCHEwYTQ1aHI0FsodFqgSJQQWygEYBDQwMDGxKAJPWAx6FAEUAQAoA3J0YgAcFvrG5ZkEFvjG5ZkEFQYYDU9YLU1QTy10eHZQRVoWyAEAHBbIARbIARbIARbIAQAMPDgMbWV0cm9wY3MuY29tOAcxMC4xNS43AAAA&ph=b619ac5a-b36b-4b63-8146-2f610a4cf148'/></div><img src=\"https://ny4-bid.adsrvr.org/bid/feedback/openx?t=1&iid=264c9384-64ca-42ae-90dc-d5ad801c1dfd&crid=q0a45hr4&wp=AAABnp8M3cxhZzAbVYkg1hfq9DO1_IsU5RVqJA&aid=1&wpc=USD&sfe=1c5c1ef0&puid=0cf27590-fead-7971-c718-99793b1954c3&bdc=144&tdid=89477d9d-2212-4f9c-a0f3-0d004d350a0b&pid=0me6z51&ag=okcdrgi&adv=vhb6rz7&sig=1TUNBnxroJ5HST9vLlQ8GCmi_NA4byzJX2A2llqyiwbc.&bp=2.34&cf=10411925&fq=0&td_s=slickdeals.net&rcats=&mste=slickdeals.net&mfld=4&mssi=&mfsi=&uhow=161&agsa=&rgz=78501&svbttd=1&dt=PC&osf=OSX&os=OSX1015&br=Chrome&rlangs=en,os&mlang=en&svpid=537075271&did=OX-MPO-txvPEZ&rcxt=Other&lat=26.139990&lon=-98.199990&tmpc=34.59000000000003&daid=&vp=0&osi=&osv=&sft=2&bx=120&bffi=41&nond=0&mk=Apple&testid=b1a%7Cdam%7C%20TTDContextualTest%20%20&cc=3~KLUv_WPYfRZoqQKNDQAED4STTCbKZK5CEZDc1a2AHB39Qgdva2NkcmdpSPrQywxQlb_7YTQ1aHI0YJCwuHokMGNmLWZlYTEtYzk3OTNiMTk1NKEBMTc1MjfqAXR4dlBFWjpLQYoEHGIxYXxkYW18eM7w5pyJoj8bMzAwQlRGMy1hZHPyuLqn98e06yIQxLDCg2M2MTg5NDc3My0wZDAwNGQzNTBhi0VzllqrtLvg6r7a_e5qIJ12MEMRgjVdbezovpal1Jq58q4EGCY6wNL30veQAYoNClOSTcAOhMeck8UMBJgTAqgTeNATAP0TzcyMP4AUAaAUALAUALgUAMgUADf8wICuBFL6VJRX188ItGuvVRaebPJ3cDKjlFLfh5wfKMdso8mMFrx7AoQUSrQuuGUMJm5oIVLACcNqw9LiqPkwWYmHsQulnUybhweOqv0ZIu54lxQfty2AJZ7XIBxN9aALAwA1SRMR1mOrCk7chDFQKYvl0jD7MMPAYAdvaVLfRg2X7QtAiKhmJ6dTLT-iNH2lY2f0jTp6k3Z3iP96EygaZwAkK9HOs6XEIZerNr7D79tNCGioJFN_Fzm_HqcC&dur=1~KLUv_WMFoCgkEABFAQB4OhoI3CACKAVNvBU7PlgBB_zkLSCVCDGey0VYOpjJx16N_klj …[+4532 chars]
+
+--- ALL JSON/TEXT API CALLS (120) ---
+[1] xhr GET https://cdn.cookielaw.org/consent/aa563bf8-d2b6-4fa0-83cc-ec9100901d0d/aa563bf8-d2b6-4fa0-83cc-ec9100901d0d.json  (200 application/json)
+     shape: { CookieSPAEnabled: boolean, CookieSameSiteNoneEnabled: boolean, CookieV2CSPEnabled: boolean, MultiVariantTestingEnabled: boolean, UseV2: boolean, MobileSDK: boolean, SkipGeolocation: boolean, ScriptType: str(10), Version: str(10), OptanonDataJSON: str(36), GeolocationUrl: str(65), BulkDomainCheckUrl: str(62), RuleSet: [1 × { Id: str(36), Name: str(6), Countries: [211 × str(2)], States: {  }, LanguageSwitcherPlaceholder: { default: str(2) }, BannerPushesDown: boolean, Default: boolean, Global: boolean, Type: str(4), UseGoogleVendors: boolean, VariantEnabled: boolean, TestEndTime: null, Variants: [], TemplateName: str(27), Conditions: [], GCEnable: boolean, IsGPPEnabled: boolean, EnableJWTAuthForKnownUsers: boolean }], IabData: { cookieVersion: str(1), createdTime: str(29), updatedTime: str(29), cmpId: str(2), cmpVersion: str(1), consentScreen: str(1), consentLanguage: null, vendorListVersion: number, maxVendorId: number, encodingType: str(1), globalVendorListUrl: str(49) }, IabV2Data: { cookieVersion: str(1), createdTime: str(29), updatedTime: str(29), cmpId: str(2), cmpVersion: str(1), consentScreen: str(1), consentLanguage: null, vendorListVersion: number, maxVendorId: number, encodingType: str(1), globalVendorListUrl: str(50) }, Iab2V2Data: { cookieVersion: str(1), createdTime: str(29), updatedTime: str(29), cmpId: str(2), cmpVersion: str(1), consentScreen: str(1), consentLanguage: null, vendorListVersion: number, maxVendorId: number, encodingType: str(1), globalVendorListUrl: str(52) }, GoogleData: { vendorListVersion: number, googleVendorListUrl: str(52) }, ScriptDynamicLoadEnabled: boolean, TenantFeatures: { CookieV2BannerFocus: boolean, CookieV2RejectAll: boolean, CookieV2TargetedTemplates: boolean, CookieV2GPC: boolean, CookieV2GeolocationJsonApi: boolean, CookieV2TCF21: boolean, CookieV2SkipCategory: boolean, CookieV2BannerLogo: boolean, ConsentStoreConsentStrings: boolean, features.cmp-amazon-consent-Signal: boolean, CookieV2AssignTemplateRule: boolean, MobileAuthenticatedConsents: boolean, CookieV2MicrosoftUET: boolean, CookieV2GCMDMA: boolean, CookieV2RemoveSettingsIcon: boolean, CookieV2NewConsentReceiptAPI: boolean, CookieV2GeneralVendors: boolean, CookieV2GPP: boolean }, IsSuppressBanner: boolean, IsSuppressPC: boolean, PublisherCC: str(2), Domain: str(14), TenantGuid: str(36), EnvId: str(8), RemoteActionsEnabled: boolean, GeoRuleGroupName: str(18), GATrackToggle: boolean, GATrackAssignedCategory: str(2), WebFormIntegrationEnabled: boolean, WebFormSrcUrl: str(0), WebFormWorkerUrl: str(0), GppData: { cmpId: str(2) }, AuthenticatedConsent: boolean, AuthenticatedLoggedOutConsent: boolean, CDNLocation: str(25), RootDomainConsentEnabled: boolean, RootDomainUrl: str(0), LanguageDetectionEnabled: boolean, LanguageDetectionByHtml: boolean, … }
+[2] fetch GET /frontpage/recommendation-carousel/recommendations?count=20&useForYouBadge=1&useFrontpageBadge=0&useCategoryBadge=0&nuxt=1  (200 application/json)  ★dealish
+     shape: { jfyDeals: [20 × { uniqueId: str(8), threadId: number, threadFirstPostId: number, frontpagePostNo: null, threadIsoDatetime: str(25), authorAvatarUrl: str(76), authorUserName: str(4), dealCardBadge: { variant: str(6), newCheckTimestamp: null }, dealTitle: str(105), dealAdditionalInfo: str(0), dealImageUrl: str(78), dealThreadUrl: str(191), dealShareUrl: str(78), isFireDeal: boolean, isFrontpageDeal: boolean, isPopularDeal: boolean, isNew: boolean, isExpired: boolean, isProductCatalogOffer: boolean, hasRebate: boolean, listPriceText: str(6), finalPriceText: str(4), discount: number, storeId: number, storeName: str(12), storeUrl: str(0), storeUrlNoFollow: boolean, disableExtensionDtm: boolean, disableCsn: boolean, socialVoteCount: number, socialVoteStatus: null, socialCommentCount: number, viewsCount: number, thirdPartyPixel: null, recommendationId: null, dealAdminConfig: null, showUserInfo: boolean, showSocialControls: boolean, storeLogoUrl: null, forumId: number, … }], frontpageRecommendations: [], mobileAdUnits: [], headline: str(12), showJfyTooltip: boolean }
+[3] fetch GET /frontpage/promoted-content/json?nuxt=1  (200 application/json)  ★dealish
+     shape: [18 × { uniqueId: str(8), threadId: number, threadFirstPostId: number, frontpagePostNo: null, threadIsoDatetime: str(25), authorAvatarUrl: str(72), authorUserName: str(16), dealCardBadge: { variant: str(8), newCheckTimestamp: null }, dealTitle: str(45), dealAdditionalInfo: str(0), dealImageUrl: str(46), dealThreadUrl: str(932), dealShareUrl: str(78), isFireDeal: boolean, isFrontpageDeal: boolean, isPopularDeal: boolean, isNew: boolean, isExpired: boolean, isProductCatalogOffer: boolean, hasRebate: boolean, listPriceText: str(3), finalPriceText: str(10), discount: number, storeId: number, storeName: str(6), storeUrl: str(41), storeUrlNoFollow: boolean, disableExtensionDtm: boolean, disableCsn: boolean, socialVoteCount: number, socialVoteStatus: null, socialCommentCount: number, viewsCount: number, thirdPartyPixel: null, recommendationId: null, dealAdminConfig: null, showUserInfo: boolean, showSocialControls: boolean, storeLogoUrl: null, forumId: number, … }]
+[4] fetch GET /ajax/bSubNavPlacement.php?section=slickdealsindex&url=%2F&nuxt=1  (200 application/json)
+     shape: []
+[5] fetch GET https://cdn.cookielaw.org/consent/aa563bf8-d2b6-4fa0-83cc-ec9100901d0d/019c0a43-9c84-7548-884d-182c60ab9e68/en.json  (200 application/json)
+     shape: { DomainData: { pclifeSpanYr: str(4), pclifeSpanYrs: str(5), pclifeSpanSecs: str(13), pclifeSpanWk: str(4), pclifeSpanWks: str(5), pccontinueWithoutAcceptText: str(26), pccloseButtonType: str(4), MainText: str(15), MainInfoText: str(604), AboutText: str(14), AboutCookiesText: str(12), ConfirmText: str(9), AllowAllText: str(13), CookiesUsedText: str(12), CookiesDescText: str(11), AboutLink: str(51), ActiveText: str(6), AlwaysActiveText: str(13), AlwaysInactiveText: str(15), PCShowAlwaysActiveToggle: boolean, AlertNoticeText: str(347), AlertCloseText: str(5), AlertMoreInfoText: str(15), AlertMoreInfoTextDialog: str(51), CookieSettingButtonText: str(15), AlertAllowCookiesText: str(5), CloseShouldAcceptAllCookies: boolean, LastReconsentDate: null, BannerTitle: str(0), ForceConsent: boolean, BannerPushesDownPage: boolean, InactiveText: str(8), CookiesText: str(7), CategoriesText: str(15), IsLifespanEnabled: boolean, LifespanText: str(8), VendorLevelOptOut: boolean, HasScriptArchive: boolean, BannerPosition: str(6), PreferenceCenterPosition: str(7), … }, CommonData: { pcenterContinueWoAcceptLinkColor: str(7), IabThirdPartyCookieUrl: str(33), OptanonHideAcceptButton: str(0), OptanonStyle: str(6), OptanonStaticContentLocation: str(0), BannerCustomCSS: str(2261), PCCustomCSS: str(67), PcTextColor: str(7), PcButtonColor: str(7), PcButtonTextColor: str(7), PcBackgroundColor: str(7), PcMenuColor: str(7), PcMenuHighLightColor: str(7), PcAccordionBackgroundColor: str(7), PCenterExpandToViewText: str(0), PcEnableToggles: boolean, PcLinksTextColor: str(7), TextColor: str(7), ButtonColor: str(7), BannerMPButtonColor: str(7), BannerMPButtonTextColor: str(7), ButtonTextColor: str(7), BackgroundColor: str(7), BannerLinksTextColor: str(7), BannerAccordionBackgroundColor: str(7), CookiePersistentLogo: str(68), OptanonLogo: str(165), BnrLogo: str(0), OneTrustFooterLogo: str(58), OptanonCookieDomain: str(14), OptanonGroupIdPerformanceCookies: str(5), OptanonGroupIdFunctionalityCookies: str(5), OptanonGroupIdTargetingCookies: str(5), OptanonGroupIdSocialCookies: str(5), ShowSubGroupCookies: boolean, LegacyBannerLayout: str(36), OptanonHideCookieSettingButton: str(0), UseRTL: boolean, ShowBannerAcceptButton: boolean, ShowBannerCookieSettings: boolean, … }, NtfyConfig: { ShowNtfy: boolean, NtfyDuration: number, ShowCS: boolean, CSType: str(6), CSTxt: str(15), Sync: { Title: str(18), TitleAlign: str(4), TitleColor: str(7), Desc: str(10), DescAlign: str(4), DescColor: str(7), BgColor: str(7), BdrColor: str(7), IconBgColor: str(7), ShowClose: boolean, CloseAria: str(5), ShowIcon: boolean }, Complete: { Title: str(18), TitleAlign: str(4), TitleColor: str(7), Desc: str(6), DescAlign: str(4), DescColor: str(7), BgColor: str(7), BdrColor: str(7), IconBgColor: str(7), ShowClose: boolean, CloseAria: str(5), ShowIcon: boolean }, CSButton: { Color: str(7), BgColor: str(7), BdrColor: str(7), Align: str(6) }, CSLink: { Color: str(7), Align: str(6) } }, OTTData: null, MobileData: null }
+[6] fetch GET https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js  (200 text/javascript; charset=UTF-8)
+     shape: (non-JSON or parse failed)
+[7] fetch GET https://static.criteo.net/js/ld/publishertag.prebid.js  (200 text/javascript)
+     shape: (non-JSON or parse failed)
+[8] fetch GET /deal-alerts/ajax/dealAlertsForYou.php?  (200 text/html; charset=UTF-8)
+     shape: { backfillDealAlerts: [21 × { addMethod: str(15), title: str(13), criteriaId: number, notification: number, source: str(14), frequency: number, dedupe: null, isAdded: boolean }] }
+[9] fetch POST /ajax/threadrate.php  (200 application/json)
+     shape: []
+[10] fetch GET /kvl/frontpage/  (200 application/json)
+     shape: { twoSlotPlacements: { bigDealTileConfig: null, eventTileConfig: null, suppressDafy: boolean } }
+[11] fetch GET /web-api/frontpage/missed-deals/?isReturningVisitor=true&showExpired=true  (200 application/json)  ★dealish
+     shape: { deals: [289 × { uniqueId: str(8), threadId: number, threadFirstPostId: number, frontpagePostNo: number, threadIsoDatetime: str(25), authorAvatarUrl: str(74), authorUserName: str(7), dealCardBadge: null, dealTitle: str(61), dealAdditionalInfo: str(10), dealImageUrl: str(80), dealThreadUrl: str(136), dealShareUrl: str(78), isFireDeal: boolean, isFrontpageDeal: boolean, isPopularDeal: boolean, isNew: boolean, isExpired: boolean, isProductCatalogOffer: boolean, hasRebate: boolean, listPriceText: str(4), finalPriceText: str(3), discount: number, storeId: number, storeName: str(6), storeUrl: str(0), storeUrlNoFollow: boolean, disableExtensionDtm: boolean, disableCsn: boolean, socialVoteCount: number, socialVoteStatus: null, socialCommentCount: number, viewsCount: number, thirdPartyPixel: null, recommendationId: null, dealAdminConfig: null, showUserInfo: boolean, showSocialControls: boolean, storeLogoUrl: str(83), forumId: number, … }] }
+[12] fetch GET /ajax/rightRailBanner.php  (204 )
+     shape: (binary/non-text — body not read)
+[13] fetch GET https://slickdeals.net/web-api/frontpage/featured-coupons/  (200 application/json)
+     shape: [7 × { id: str(8), title: str(50), storeUrl: null, outclickUrl: str(152), discount: null, views: str(6), code: str(0), storeLogoUrl: str(54) }]
+[14] fetch HEAD /scripts/sd/ads/gpt.min.js  (200 text/javascript)
+     shape: (non-JSON or parse failed)
+[15] xhr GET https://s.yimg.com/wi/config/11565.json  (200 text/html)
+     shape: (non-JSON or parse failed)
+[16] xhr GET https://pixel-config.reddit.com/pixels/a2_hy8hf63ygf1x/config  (200 application/json)
+     shape: { aam: { email: boolean, phone_number: boolean }, esc: {  } }
+[17] fetch GET https://ad-delivery.net/px.gif?ch=2&e=0.12941730986742217  (0 )
+     shape: (binary/non-text — body not read)
+[18] fetch GET https://9.stg.html-load.cc/feed/8p2/7v0/nrp/slickdeals.net/sur/ejhebjjofrzr8r8yr0rvr0igexcsxmstrvpcjr84y6msiprvmsirqyr0rk9887q18r2yr0rgei7rgrknr2yr0pcjrknr2fbihyr0rknr2fmucrkq187q18r2crk8rvrl8nrlnnqn5rl8rpqqqr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (0 )
+     shape: (binary/non-text — body not read)
+[19] fetch GET https://ad-delivery.net/px.gif?ch=1&e=0.2978974923011698  (0 )
+     shape: (binary/non-text — body not read)
+[20] fetch GET https://ab.dns-finder.com/meta/dns  (200 text/plain; charset=utf-8)
+     shape: (non-JSON or parse failed)
+[21] xhr GET https://8.stg.html-load.cc/feed/bw9/c8g/xq5/slickdeals.net/sur/ejhebjjofrzr8r8srvyayuiprcyr0fkfjcarvsiar8eyircsfar8yofrcsiaar8yofrgsfarv2frqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/javascript)
+     shape: (non-JSON or parse failed)
+[22] xhr GET https://pips.taboola.com  (200 )
+     shape: (non-JSON or parse failed)
+[23] fetch GET https://8.stg.html-load.cc/feed/51l/tif/qty/slickdeals.net/sur/ejhebjjofrzr8r8sr0prvsiitmcxyhrvi3zr8fs3mojjcaoxyjcfr8q8qv8nrvnrv8r8yffcjfr8ijr1xyjrv2fiprqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { name: str(6), html: str(1856), css: str(13326) }
+[24] fetch GET https://8.stg.html-load.cc/feed/51l/tif/qty/slickdeals.net/sur/ejhebjjofrzr8r8sr0prvsiitmcxyhrvi3zr8fs3mojjcaoxyjcfr8q8qv8nrvnrv8r8yffcjfr86qr8ijr4srxyerv2fiprqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { name: str(7), html: str(12696), css: str(56262) }
+[25] fetch GET https://8.stg.html-load.cc/feed/51l/tif/qty/slickdeals.net/sur/ejhebjjofrzr8r8sr0prvsiitmcxyhrvi3zr8fs3mojjcaoxyjcfr8q8qv8nrvnrv8r8yffcjfr8ijreiaaipr9jkxcfrvsffrqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 text/css)
+     shape: (non-JSON or parse failed)
+[26] fetch POST https://api.btloader.com/exd?tid=TucnhrNix-Kd7jvERW-9e9f0cda87&sid=tlUrZ26DB-xzv3In8A-9e9f0c1a61&cv=2.1.189-1-gf2b7278&upapi=true  (204 )
+     shape: (binary/non-text — body not read)
+[27] fetch GET https://3.stg.html-load.cc/feed/tll/vkc/rso/slickdeals.net/sur/ejhebjjofrzr8r8zcirvo3m6yskaypyzc3rvmir8rqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { country: str(2), region: str(2) }
+[28] xhr GET https://1.stg.html-load.cc/feed/bw9/of/qm4/slickdeals.net/sur/ejhebjjofrzr8r8mr07rvxmyr0arvsiar8mr0c7r8r0mr0rc88n8r8ypkrqr0gmr0rkr0srt5v5yrtr0er0srcrc8ntopakvrtnrlr06b2barl2kkrthz3jr2sr0rkrvfxmstr0cyxfrvpcjr2ogrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2zoorgfrkrwrmrrrmrmzwnrmw3irrrrrrrnrrrvrjrrr2zoorgyfrkrtr2rgogesmr0rkessr0r0rp8erccyyqrc5qrp4rcrlcrperc1nr0rlsnr05rpsy1r2rg4eork4ervnrvnrprpvvrlv91895rtrvv8rprl5vrprlvrp15rt1rt9rtvr23cfix6crkpc77cpr23cfix6crkucjyffor23cfix6crkj3moxcxm4jr23cfix6crkfby3cjb3igzbr23cfix6crkfipiemr23cfix6crk6mr0yuiir23cfix6crkfi63pr23cfix6crkjbcj3yr0cr0cftr23cfix6crkgmr0qr23cfix6crkemr0fhmjsbr23cfix6crkacr0mypcjr23cfix6crkayzpmjcr23cfix6crkiocp7r23cfix6crkogeayjmsr23cfix6crkmpr0c7r23cfix6crkpiprar0r2r0mr0rkr0mr0rc88n8r2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 text/plain; charset=UTF-8)
+     shape: { magnite: str(15), uid2: str(218), triplelift: str(22), nonId: str(115), nexxen: str(43), bidswitch: str(36), pubmatic: str(36), index: str(29) }
+[29] fetch POST https://5.stg.html-load.cc/feed/bw9/c8g/wax/hq1/csr/slickdeals.net/sur/ejhebjjofrzr8r8hcerceyppc3rvyr0frvyofrvyayuiprcyr0fkfjcarvsiar8cr8r0jer8emr0rqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json;charset=UTF-8)
+     shape: { requestId: str(36), contextual: { slots: [8 × { meta: [3 × …], targeting: [5 × …], mediaType: str(1), slotID: str(21), amzniid: str(66), amznactt: str(4), amznp: str(7), amznbid: str(7), amznsz: str(7), crid: str(19), size: str(7) }], host: str(57), status: str(2), cfe: boolean, ev: boolean, cfn: str(30), cb: str(1), cmp: str(122) } }
+[30] fetch GET https://2.stg.html-load.cc/feed/bw9/of/hy5/slickdeals.net/sur/ejhebjjofrzr8r83orvxmyr0arvsiar82rqr0jfjaorknrprt8rprt5rtrt85rp1r2fcrkckroxewsr1oerubbsqzmrhmra7rirxrr7wa2w37r6ub2warxtur6wsrs9w9wsraqrhrxrahrsarskwaqw3hwarxz5rsrwt9r6ur6mw9wsw3hrhrwruurhrwr5brswsr62rs2xmwa2tqr6r7rj1rs2bar6rwrjhr6rxrrm4rjr2r0gmr0rkr0srt5v5yrtr0er0srcrc8ntopakvrtnrlr06b2barl2kkrthz3jr2j6rkn8rvq8rv8r2ogrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2crk8ne1nrprtsyrl91srpcevrlq8qsqsc8yrtrt8rlrprp9ecc8rtn9rt5ynssqrleerlv5r0rlqrt455818r2gfrgo3m6yskrknrcrcrcr2hoprko3cemr0r2sr0rkrvfxmstr0cyxfrvpcjr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { bakers: [1 × str(32)] }
+[31] fetch GET https://1.stg.html-load.cc/feed/bw9/of/qm4/slickdeals.net/sur/ejhebjjofrzr8r8mr07rvxmyr0arvsiar8mr0c7r8o3cemr0r81rt81rprqr0gmr0rkr0srt5v5yrtr0er0srcrc8ntopakvrtnrlr06b2barl2kkrthz3jr2gfrgo3m6yskrknrcrcrcr2sr0rkrvfxmstr0cyxfrvpcjr2ogrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjr23cfix6crkpiprar0r23cfix6crkogeayjmsr23cfix6crkj3moxcrim4jr23cfix6crkiocp7r23cfix6crkfby3cjb3igzbr23cfix6crkmpr0c7r2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 text/plain; charset=UTF-8)
+     shape: { nonId: str(115), pubmatic: str(36), index: str(29) }
+[32] fetch POST https://5.stg.html-load.cc/feed/bw9/jqk/slickdeals.net/sur/ejhebjjofrzr8r8mr01rcfkpsrvsiar8yomr8sip4mzr8o3cemr0rqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 )
+     shape: (binary/non-text — body not read)
+[33] xhr GET https://cds.taboola.com?uid=181a9307-8914-4888-bd8e-f0206a01344d-tuct10dfbe9d&ptf=bWFjT1M=&ptfv=MjYuNS4x&ufv=MTQ4LjAuNzc3OC4yMTc=&bnd=Q2hyb21pdW0=&bndv=MTQ4&bnd=R29vZ2xlIENocm9tZQ==&bndv=MTQ4&bnd=Tm90L0EpQnJhbmQ=&bndv=OTk=&mbl=ZmFsc2U=&dc=ch  (204 )
+[34] fetch GET https://6.stg.html-load.cc/feed/bw9/jqk/zho/slickdeals.net/sur/ejhebjjofrzr8r8yomrvmr01rcfkpsrvsiar8ypyxkjmsfr8rln9r8mr01rcyomrc2frqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 )
+     shape: (binary/non-text — body not read)
+[35] xhr GET https://4.stg.html-load.cc/feed/bw9/1m/nul/nrp/t9i/slickdeals.net/sur/ejhebjjofrzr8r8o3isrvyr0rvsocrvr0ijiamrvsiar8s67r8sxmcpjr8r0m3csjr8xygpsbc3rq6c3fmiprknrvqrv8r2xmr0rkvrtnr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { tid: number, solution: [1 × { name: str(7), src: str(68), configName: str(15), config: { pubcid: {  }, loadAts: boolean } }] }
+[36] fetch GET https://8.stg.html-load.cc/feed/51l/tif/qty/slickdeals.net/sur/ejhebjjofrzr8r8sr0prvsiitmcxyhrvi3zr8xizifr8fjyjmsr8ijrgzgy3r0rgxizirvf6zrqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 image/svg+xml)
+     shape: (binary/non-text — body not read)
+[37] fetch GET https://8.stg.html-load.cc/feed/bw9/3v2/hqi/slickdeals.net/sur/ejhebjjofrzr8r84yfjxypcrv3gemsipo3i2csjrvsiar8yr8yomr84yfjxypcrv2fiprqyssigpjrgmr0rkn85rp5r2fmjcrgmr0rkv8vnrtrlr2uipcrgmr0rk9rl8nvq9r2fmucrgmr0rkn1r2yxjrgfmucrgmr0frkn8r2gfrgo3m6yskrknrcrcrcr2cmr0rgmr01rcfkpsrvsiark8rf1runrf1rurf1rurf1rurf1rurf1rur234rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr0iaymprkfxmstr0cyxfrvpcjr2jzrgmrvoyzcrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr04orgyr0rggpmjrgsir0crkrfqr1n88v85nrfqr1bo988rrrxr1nrrr2jtrg4xmpjrkoe2frgxmjcrg6n8rvq8rv8r27rgfig3scrvjmr0rkgr09yyrl4rprprcn5erlrc5rpy5rcrlvcercy9qqnycrp1vrl9r2xrgoergemr0rgmr0rkrlrlr0rtnyrtrprcr05n5rc5e1rlrce11crccnr0crpr04rp9rpe4r2orgfs3ccprg3cfrknrlq87n8rt8r23orgfcsg3crknr27rgmaorvc7jrvjmr0rkg818vrt5erprc8everc58enrcrlrlcnrcrt5r0rtqrlnsr0484r2orgzomr0rkrfqr1n88v85nrfqr1bo988rrrxr1nrrrfq9jiorc9887q18rc9887v88rcrrr2argsbrggyrkrfqqreb3iamgarfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr7iizxcrfq8reb3iacrfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr6ijrfqr1rrw5rm3ypr0rfqqrfrpre6rf9rwrfqqrlrlrfqqr2argsbrgaiemxcrkrf9r18r2argsbrgoxyj4i3arkaysrhr9r2fxijfrknr23ypr0rk8rvrprtvv1vrp59851qrtvrpr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { status: str(2), account_id: number, site_id: number, zone_id: number, size_id: number, alt_size_ids: [1 × number], tracking: str(0), inventory: { page: str(23), dfp_ad_unit_code: str(32), domain: str(14) }, ads: [5 × { status: str(2), impression_id: str(36), size_id: str(2), ad_id: str(7), advertiser: number, network: number, creative_id: str(12), seat: number, deal: number, w: number, h: number, type: str(6), script: str(6070), campaign_id: number, rtb_rule_id: number, cpm: number, adomain: [1 × str(19)] }] }
+[38] fetch GET https://8.stg.html-load.cc/feed/bw9/3v2/hqi/slickdeals.net/sur/ejhebjjofrzr8r84yfjxypcrv3gemsipo3i2csjrvsiar8yr8yomr84yfjxypcrv2fiprqyssigpjrgmr0rkn85rp5r2fmjcrgmr0rkv8vnrtrlr2uipcrgmr0rk9rl8nvq9r2fmucrgmr0rkn1r2yxjrgfmucrgmr0frkn8r2gfrgo3m6yskrknrcrcrcr2cmr0rgmr01rcfkpsrvsiark8rf1runrf1rurf1rurf1rurf1rurf1rur234rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr0iaymprkfxmstr0cyxfrvpcjr2jzrgmrvoyzcrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr04orgyr0rggpmjrgsir0crkrfqr1n88v85nrfqr1bo988rrrxr1qrrr2jtrg4xmpjrkoe2frgxmjcrg6n8rvq8rv8r27rgfig3scrvjmr0rkgr09yyrl4rprprcn5erlrc5rpy5rcrlvcercy9qqnycrp1vrl9r2xrgoergemr0rgmr0rk1qrlyvrl4yrc95rtrlrc58srlrcrl91vrc8n8r01nv1e15nr2orgfs3ccprg3cfrknrlq87n8rt8r23orgfcsg3crknr27rgmaorvc7jrvjmr0rkgcrpcvr0e8crc149vrc5qc8rcyrtr0rlrccr04v9y8rp18rp8r2orgzomr0rkrfqr1n88v85nrfqr1bo988rrrxr1qrrrfq9jiorc9887q18rc9887v88rcrmr2argsbrggyrkrfqqreb3iamgarfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr7iizxcrfq8reb3iacrfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr6ijrfqr1rrw5rm3ypr0rfqqrfrpre6rf9rwrfqqrlrlrfqqr2argsbrgaiemxcrkrf9r18r2argsbrgoxyj4i3arkaysrhr9r2fxijfrknr23ypr0rk8rvvqrp19rt8rt99vnnrlnqr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { status: str(2), account_id: number, site_id: number, zone_id: number, size_id: number, alt_size_ids: [1 × number], tracking: str(0), inventory: { page: str(23), dfp_ad_unit_code: str(32), domain: str(14) }, ads: [4 × { status: str(2), impression_id: str(36), size_id: str(2), ad_id: str(7), advertiser: number, network: number, creative_id: str(14), seat: number, w: number, h: number, type: str(6), script: str(13024), campaign_id: number, rtb_rule_id: number, cpm: number, adomain: [1 × str(11)] }] }
+[39] fetch GET https://8.stg.html-load.cc/feed/bw9/3v2/hqi/slickdeals.net/sur/ejhebjjofrzr8r84yfjxypcrv3gemsipo3i2csjrvsiar8yr8yomr84yfjxypcrv2fiprqyssigpjrgmr0rkn85rp5r2fmjcrgmr0rkv8vnrtrlr2uipcrgmr0rk9rl8nvq9r2fmucrgmr0rkqr2gfrgo3m6yskrknrcrcrcr2cmr0rgmr01rcfkpsrvsiark8rf1runrf1rurf1rurf1rurf1rurf1rur234rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr0iaymprkfxmstr0cyxfrvpcjr2jzrgmrvoyzcrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jtrg4xmpjrkoe2frgxmjcrg6n8rvq8rv8r27rgfig3scrvjmr0rkgr09yyrl4rprprcn5erlrc5rpy5rcrlvcercy9qqnycrp1vrl9r2xrgoergemr0rgmr0rkr0rp1s14ssrcrperprprc58s4rcrtqrlcrc9rl4rp1cqqsr08yr2orgfs3ccprg3cfrknrlq87n8rt8r23orgfcsg3crknr27rgmaorvc7jrvjmr0rkg55qsvr0rprlrcv5r0rprc55svrcertsvrcsq9rp9nr098srl5r2orgzomr0rkrfqr1n88v85nrfqr1borpqrtrmrxr1rfq9amr0r0xcrcrpqrt7rl8r2argsbrggyrkrfqqreb3iamgarfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr7iizxcrfq8reb3iacrfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr6ijrfqr1rrw5rm3ypr0rfqqrfrpre6rf9rwrfqqrlrlrfqqr2argsbrgaiemxcrkrf9r18r2argsbrgoxyj4i3arkaysrhr9r2fxijfrknr23ypr0rk8rvrt1rlrl9nrt15898q88qr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { status: str(2), account_id: number, site_id: number, zone_id: number, size_id: number, tracking: str(0), inventory: { page: str(23), domain: str(14) }, ads: [1 × { status: str(6), reason: str(17), error_code: str(2), impression_id: str(36) }] }
+[40] fetch GET https://8.stg.html-load.cc/feed/bw9/3v2/hqi/slickdeals.net/sur/ejhebjjofrzr8r84yfjxypcrv3gemsipo3i2csjrvsiar8yr8yomr84yfjxypcrv2fiprqyssigpjrgmr0rkn85rp5r2fmjcrgmr0rkv8vnrtrlr2uipcrgmr0rk9rl8nvq9r2fmucrgmr0rkn1r2yxjrgfmucrgmr0frkn8r2gfrgo3m6yskrknrcrcrcr2cmr0rgmr01rcfkpsrvsiark8rf1runrf1rurf1rurf1rurf1rurf1rur234rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr0iaymprkfxmstr0cyxfrvpcjr2jzrgmrvoyzcrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr04orgyr0rggpmjrgsir0crkrfqr1n88v85nrfqr1bo988rmrxr1nr2jtrg4xmpjrkoe2frgxmjcrg6n8rvq8rv8r27rgfig3scrvjmr0rkgr09yyrl4rprprcn5erlrc5rpy5rcrlvcercy9qqnycrp1vrl9r2xrgoergemr0rgmr0rkrpv54crl18rccvqvrc54r0rlrcrlnvrprccccrtqenq1e1r0r2orgfs3ccprg3cfrknrlq87n8rt8r23orgfcsg3crknr27rgmaorvc7jrvjmr0rkge8q55rtnyrc4rpvyrc54r0qrcrlrp4rtrcsns8srpsrlq8nnr2orgzomr0rkrfqr1n88v85nrfqr1bo988rmrxr1nrfq93mzbjsixrc9887q18rc9887v88rcrmr2argsbrggyrkrfqqreb3iamgarfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr7iizxcrfq8reb3iacrfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr6ijrfqr1rrw5rm3ypr0rfqqrfrpre6rf9rwrfqqrlrlrfqqr2argsbrgaiemxcrkrf9r18r2argsbrgoxyj4i3arkaysrhr9r2fxijfrknr23ypr0rk8rvrprtv5rp1559vnv1n8rpr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { status: str(2), account_id: number, site_id: number, zone_id: number, size_id: number, alt_size_ids: [1 × number], tracking: str(0), inventory: { page: str(23), dfp_ad_unit_code: str(31), domain: str(14) }, ads: [3 × { status: str(2), impression_id: str(36), size_id: str(2), ad_id: str(7), advertiser: number, network: number, creative_id: str(14), seat: number, w: number, h: number, type: str(6), script: str(12965), campaign_id: number, rtb_rule_id: number, cpm: number, adomain: [1 × str(11)] }] }
+[41] fetch GET https://8.stg.html-load.cc/feed/bw9/3v2/hqi/slickdeals.net/sur/ejhebjjofrzr8r84yfjxypcrv3gemsipo3i2csjrvsiar8yr8yomr84yfjxypcrv2fiprqyssigpjrgmr0rkn85rp5r2fmjcrgmr0rkv8vnrtrlr2uipcrgmr0rk9rl8nvq9r2fmucrgmr0rkn1r2yxjrgfmucrgmr0frkn8r2gfrgo3m6yskrknrcrcrcr2cmr0rgmr01rcfkpsrvsiark8rf1runrf1rurf1rurf1rurf1rurf1rur234rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr0iaymprkfxmstr0cyxfrvpcjr2jzrgmrvoyzcrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jtrg4xmpjrkoe2frgxmjcrg6n8rvq8rv8r27rgfig3scrvjmr0rkgr09yyrl4rprprcn5erlrc5rpy5rcrlvcercy9qqnycrp1vrl9r2xrgoergemr0rgmr0rk19eqsvv5rcrprlrtvrc59qyrcyyr08rcrprlrlr0vrlrlrlyr0rtrpr2orgfs3ccprg3cfrknrlq87n8rt8r23orgfcsg3crknr27rgmaorvc7jrvjmr0rkg5rpqrpvsc8rcyrl89rc5r0qerce4s1rcs55ns9rtsenrtnr2orgzomr0rkrfqr1n88v85nrfqr1bo988rmrxr1qrfq93mzbjsixrc9887q18rc9887v88rcrer2argsbrggyrkrfqqreb3iamgarfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr7iizxcrfq8reb3iacrfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr6ijrfqr1rrw5rm3ypr0rfqqrfrpre6rf9rwrfqqrlrlrfqqr2argsbrgaiemxcrkrf9r18r2argsbrgoxyj4i3arkaysrhr9r2fxijfrknr23ypr0rk8rvnq9qrl89rt98rtv81rlrtrtr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { status: str(2), account_id: number, site_id: number, zone_id: number, size_id: number, alt_size_ids: [1 × number], tracking: str(0), inventory: { page: str(23), domain: str(14) }, ads: [3 × { status: str(2), impression_id: str(36), size_id: str(2), ad_id: str(7), advertiser: number, network: number, creative_id: str(14), seat: number, w: number, h: number, type: str(6), script: str(13370), campaign_id: number, rtb_rule_id: number, cpm: number, adomain: [1 × str(11)] }] }
+[42] fetch GET https://8.stg.html-load.cc/feed/bw9/3v2/hqi/slickdeals.net/sur/ejhebjjofrzr8r84yfjxypcrv3gemsipo3i2csjrvsiar8yr8yomr84yfjxypcrv2fiprqyssigpjrgmr0rkn85rp5r2fmjcrgmr0rkv8vnrtrlr2uipcrgmr0rk9rl8nvq9r2fmucrgmr0rkn1r2yxjrgfmucrgmr0frkn8r2gfrgo3m6yskrknrcrcrcr2cmr0rgmr01rcfkpsrvsiark8rf1runrf1rurf1rurf1rurf1rurf1rur234rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr0iaymprkfxmstr0cyxfrvpcjr2jzrgmrvoyzcrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr04orgyr0rggpmjrgsir0crkrfqr1n88v85nrfqr1bo988rmrxr19r2jtrg4xmpjrkoe2frgxmjcrg6n8rvq8rv8r27rgfig3scrvjmr0rkgr09yyrl4rprprcn5erlrc5rpy5rcrlvcercy9qqnycrp1vrl9r2xrgoergemr0rgmr0rk919vnsqr0rcn4rlqrc5rtr08rcrte5vrc4q5sr0981ceyyr2orgfs3ccprg3cfrknrlq87n8rt8r23orgfcsg3crknr27rgmaorvc7jrvjmr0rkgq8n84yrtyrcrlrtcr0rc519qrcrl8s9rcrpv5e8erl8sr0nr0r2orgzomr0rkrfqr1n88v85nrfqr1bo988rmrxr19rfq93mzbjsixrc9887q18rc9887v88rcrwr2argsbrggyrkrfqqreb3iamgarfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr7iizxcrfq8reb3iacrfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr6ijrfqr1rrw5rm3ypr0rfqqrfrpre6rf9rwrfqqrlrlrfqqr2argsbrgaiemxcrkrf9r18r2argsbrgoxyj4i3arkaysrhr9r2fxijfrknr23ypr0rk8rv8vrprpv5n95115rl995vr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { status: str(2), account_id: number, site_id: number, zone_id: number, size_id: number, alt_size_ids: [1 × number], tracking: str(0), inventory: { page: str(23), dfp_ad_unit_code: str(31), domain: str(14) }, ads: [3 × { status: str(2), impression_id: str(36), size_id: str(2), ad_id: str(7), advertiser: number, network: number, creative_id: str(14), seat: number, w: number, h: number, type: str(6), script: str(13024), campaign_id: number, rtb_rule_id: number, cpm: number, adomain: [1 × str(11)] }] }
+[43] fetch GET https://8.stg.html-load.cc/feed/bw9/3v2/hqi/slickdeals.net/sur/ejhebjjofrzr8r84yfjxypcrv3gemsipo3i2csjrvsiar8yr8yomr84yfjxypcrv2fiprqyssigpjrgmr0rkn85rp5r2fmjcrgmr0rkv8vnrtrlr2uipcrgmr0rk9rl8nvq9r2fmucrgmr0rkn1r2yxjrgfmucrgmr0frkrlrfqren8r2gfrgo3m6yskrknrcrcrcr2cmr0rgmr01rcfkpsrvsiark8rf1runrf1rurf1rurf1rurf1rurf1rur234rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr0iaymprkfxmstr0cyxfrvpcjr2jzrgmrvoyzcrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr04orgyr0rggpmjrgsir0crkrfqr1n88v85nrfqr1bonv8rmrxr1r2jtrg4xmpjrkoe2frgxmjcrg6n8rvq8rv8r27rgfig3scrvjmr0rkgr09yyrl4rprprcn5erlrc5rpy5rcrlvcercy9qqnycrp1vrl9r2xrgoergemr0rgmr0rkrl185vrlecrcc1vnrc5ncrtrcrtyrtvrccvq9r088rpq15rtr2orgfs3ccprg3cfrknrlq87n8rt8r23orgfcsg3crknr27rgmaorvc7jrvjmr0rkgr051rl9nnrlrcrtqertrc5rper0rcrlqrtsrcrtr04rprp1nqqnrtrpr2orgzomr0rkrfqr1n88v85nrfqr1bonv8rmrxr1rfq93mzbjsixrc9887q18rc9887v88rcnv87v88r2argsbrggyrkrfqqreb3iamgarfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr7iizxcrfq8reb3iacrfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr6ijrfqr1rrw5rm3ypr0rfqqrfrpre6rf9rwrfqqrlrlrfqqr2argsbrgaiemxcrkrf9r18r2argsbrgoxyj4i3arkaysrhr9r2fxijfrknr23ypr0rk8rvrt8vrlrprl8rprp8119rl1nr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { status: str(2), account_id: number, site_id: number, zone_id: number, size_id: number, alt_size_ids: [2 × number], tracking: str(0), inventory: { page: str(23), dfp_ad_unit_code: str(30), domain: str(14) }, ads: [4 × { status: str(2), impression_id: str(36), size_id: str(2), ad_id: str(7), advertiser: number, network: number, creative_id: str(14), seat: number, w: number, h: number, type: str(6), script: str(13024), campaign_id: number, rtb_rule_id: number, cpm: number, adomain: [1 × str(11)] }] }
+[44] fetch GET https://8.stg.html-load.cc/feed/bw9/3v2/hqi/slickdeals.net/sur/ejhebjjofrzr8r84yfjxypcrv3gemsipo3i2csjrvsiar8yr8yomr84yfjxypcrv2fiprqyssigpjrgmr0rkn85rp5r2fmjcrgmr0rkv8vnrtrlr2uipcrgmr0rk9rl8nvq9r2fmucrgmr0rkqr2gfrgo3m6yskrknrcrcrcr2cmr0rgmr01rcfkpsrvsiark8rf1runrf1rurf1rurf1rurf1rurf1rur234rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr0iaymprkfxmstr0cyxfrvpcjr2jzrgmrvoyzcrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jtrg4xmpjrkoe2frgxmjcrg6n8rvq8rv8r27rgfig3scrvjmr0rkgr09yyrl4rprprcn5erlrc5rpy5rcrlvcercy9qqnycrp1vrl9r2xrgoergemr0rgmr0rkrlr0esvyycrce1qrtrc58rl8rcyscnrcq1vcr0rlr049crlrpr2orgfs3ccprg3cfrknrlq87n8rt8r23orgfcsg3crknr27rgmaorvc7jrvjmr0rkgcrlyrpqc8src5n11rc5rt4vrcysnrtrcrlqrpq18v9qr0nyr2orgzomr0rkrfqr1n88v85nrfqr1borpqrtrmrxr1nrfq9amr0r0xcrcrpqrt7rl8rcrlrp87q18r2argsbrggyrkrfqqreb3iamgarfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr7iizxcrfq8reb3iacrfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr6ijrfqr1rrw5rm3ypr0rfqqrfrpre6rf9rwrfqqrlrlrfqqr2argsbrgaiemxcrkrf9r18r2argsbrgoxyj4i3arkaysrhr9r2fxijfrknr23ypr0rk8rvvrt95rp5rlqn5rlqrt8rl1r2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { status: str(2), account_id: number, site_id: number, zone_id: number, size_id: number, tracking: str(0), inventory: { page: str(23), domain: str(14) }, ads: [1 × { status: str(6), reason: str(17), error_code: str(2), impression_id: str(36) }] }
+[45] fetch POST https://2.stg.html-load.cc/feed/bw9/s16/ifj/slickdeals.net/sur/ejhebjjofrzr8r8mervyr0p7frvsiar8gjr869r8o3cemr0rqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { version: str(5), tags: [8 × { uuid: str(36), tag_id: number, auction_id: str(19), nobid: boolean, no_ad_url: str(1270), timeout_ms: number, ad_profile_id: number, rtb_video_fallback: boolean, publisher_id: number, ads: [1 × { cpm: …, cpm_publisher_currency: …, publisher_currency_code: …, publisher_currency_codename: …, adomain: …, content_source: …, ad_type: …, buyer_member_id: …, creative_id: …, media_type_id: …, media_subtype_id: …, brand_category_id: …, brand_id: …, is_sov: …, is_roadblock: …, bidder_id: …, client_initiated_ad_counting: …, is_managed: …, no_consent: …, rtb: … }] }] }
+[46] fetch POST https://5.stg.html-load.cc/feed/bw9/407/673/slickdeals.net/sur/ejhebjjofrzr8r8bjxervsyfyxcacr0myrvsiar8iocp3jer8oe2frqfrkqqv9rtrlr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { id: str(36), seatbid: [] }
+[47] fetch POST https://3.stg.html-load.cc/feed/bw9/cwi/j2v/slickdeals.net/sur/ejhebjjofrzr8r8jx7rv9xm4jrvsiar8bcyr0c3r8ygsjmiprqxmerko3cemr0r26rkn8rvq8rv8r23c4c33c3rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jay7rkn188r2gfrgo3m6yskrknrcrcrcr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { status: str(6) }
+[48] fetch POST https://4.stg.html-load.cc/feed/8p2/b1e/9jj/slickdeals.net/sur/ejhebjjofrzr8r83jerviocp7rvpcjr8iocp3jeer8o3cemr02frqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 text/plain)  ★dealish
+     shape: { id: str(36), cur: str(3), seatbid: [1 × { seat: str(5), bid: [1 × { adm: …, id: …, impid: …, price: …, adomain: …, crid: …, cattax: …, cat: …, dealid: …, w: …, h: …, slotinpod: …, mtype: …, ext: … }] }] }
+[49] fetch POST https://4.stg.html-load.cc/feed/51l/29r/jio/slickdeals.net/sur/ejhebjjofrzr8r8r0m3csjrvyr0f363rvi3zr8emr0r8emr0r0c3r8r0m3csjgrpr02j0furqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (500 text/plain;charset=UTF-8)
+     shape: (non-JSON or parse failed)
+[50] fetch POST https://0.stg.html-load.cc/feed/bw9/zae/80n/slickdeals.net/sur/ejhebjjofrzr8r8ejx3rvfby3cjb3igzbrvsiar8gpm6c3fyxr86nrqfgooxkrgmr0rkwswagqrmwz6nr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { cookieSyncUrls: [5 × str(94)] }
+[51] fetch POST https://0.stg.html-load.cc/feed/bw9/zae/80n/slickdeals.net/sur/ejhebjjofrzr8r8ejx3rvfby3cjb3igzbrvsiar8gpm6c3fyxr86nrqfgooxkrgmr0rkwswagqrmwz6nr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { cookieSyncUrls: [5 × str(75)] }
+[52] fetch POST https://0.stg.html-load.cc/feed/bw9/zae/80n/slickdeals.net/sur/ejhebjjofrzr8r8ejx3rvfby3cjb3igzbrvsiar8gpm6c3fyxr86nrqfgooxkrgmr0rkwswagqrmwz6nr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { cookieSyncUrls: [5 × str(75)] }
+[53] fetch POST https://0.stg.html-load.cc/feed/bw9/zae/80n/slickdeals.net/sur/ejhebjjofrzr8r8ejx3rvfby3cjb3igzbrvsiar8gpm6c3fyxr86nrqfgooxkrgmr0rkwswagqrmwz6nr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { cookieSyncUrls: [5 × str(75)] }
+[54] fetch POST https://0.stg.html-load.cc/feed/bw9/zae/80n/slickdeals.net/sur/ejhebjjofrzr8r8ejx3rvfby3cjb3igzbrvsiar8gpm6c3fyxr86nrqfgooxkrgmr0rkwswagqrmwz6nr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { cookieSyncUrls: [5 × str(94)] }
+[55] fetch POST https://8.stg.html-load.cc/feed/bw9/n55/wil/slickdeals.net/sur/ejhebjjofrzr8r8beiocpemr0rvogeayjmsrvsiar8j3ypfxyji3rqfig3scrko3cemr0rcsxmcpjr2zumorknr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (204 )
+     shape: (binary/non-text — body not read)
+[56] fetch POST https://9.stg.html-load.cc/feed/bw9/zym/vlw/slickdeals.net/sur/ejhebjjofrzr8r8z3mr0rcemr0r0c3rvs3mjcirvsiar8iocp3jergqrg1r8oe2fr8ygsjmipr83c0gcfjrqo3i4mxcrar0rkq8rpr2y6rk9rpr2h6rkn8rvq8rv8r2serkn51185518q5r2xfy6ymxrknr2pcjhi3trar0rknqrl8r2zumorknr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { id: str(36), cur: str(3), seatbid: [1 × { seat: str(2), bid: [8 × { id: …, impid: …, price: …, adomain: …, bundle: …, iurl: …, cid: …, crid: …, lurl: …, cat: …, w: …, h: …, adm: …, exp: …, ext: … }] }] }
+[57] xhr GET https://7.stg.html-load.cc/feed/3on/nrp/rrw/q9i/slickdeals.net/sur/ejhebjjofrzr8r8mr0rvbyr03iprvyr0rvzjr86nr8byr03iprv2fiprqrgmjrkyayuipr2oy3jpc3rgmr0rkqq8r2fkpsrk8r2r0iaymprkfxmstr0cyxfrvpcjr2g3xrkbjjofrzr8r8fxmstr0cyxfrvpcjr8r26rk8vr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf8)
+     shape: { base_id: str(32), guid: str(11), addr: str(19), domain: str(14), debug_info: {  }, hadron_id: str(65) }
+[58] fetch GET https://ad-delivery.net/px.gif?ch=1&e=0.5771927365802286  (0 )
+     shape: (binary/non-text — body not read)
+[59] xhr POST https://2.stg.html-load.cc/feed/3on/nrp/ke1/slickdeals.net/sur/ejhebjjofrzr8r8yrvyr0rvzjr8yomr86nr8sixxcsjrqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (204 )
+[60] xhr POST https://2.stg.html-load.cc/feed/3on/nrp/vex/slickdeals.net/sur/ejhebjjofrzr8r8orvyr0rvzjr8yomr86nr8c6cpjrqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (204 )
+[61] xhr POST https://2.stg.html-load.cc/feed/3on/nrp/vex/slickdeals.net/sur/ejhebjjofrzr8r8orvyr0rvzjr8yomr86nr8c6cpjrqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (204 )
+[62] fetch GET https://ad-delivery.net/px.gif?ch=2&e=0.695301889372157  (0 )
+     shape: (binary/non-text — body not read)
+[63] fetch GET https://9.stg.html-load.cc/feed/8p2/7v0/nrp/slickdeals.net/sur/ejhebjjofrzr8r8yr0rvr0igexcsxmstrvpcjr84y6msiprvmsirqyr0rk9887q18r2yr0rgei7rgrknr2yr0pcjrknr2fbihyr0rknr2fmucrkq187q18r2crk8rvrtn8rl9rl15v889v98rlr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (0 )
+     shape: (binary/non-text — body not read)
+[64] xhr POST https://5.stg.html-load.cc/feed/bw9/jqk/slickdeals.net/sur/ejhebjjofrzr8r8mr01rcfkpsrvsiar8zar869rqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 )
+[65] xhr GET https://1.stg.html-load.cc/feed/hmr/ww/er0/slickdeals.net/sur/ejhebjjofrzr8r8conrvyr0j3y44ms0gyxmjkrvziizxcr8zcjsip4mzr8fir0y3rqf6rkq88r2jmr0rkzojr2j6rkaq8qv8v898n8nr2fjrkcp6r2f2trkn5rp5rtvqqrlqrl5qnnrlr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw?as-revalidator=azTFrEGmxQP  (200 application/json; charset=UTF-8)
+     shape: { sodar_query_id: str(23), injector_basename: str(6), bg_hash_basename: str(43), bg_binary: str(17807), rc_enable: str(1), bg_snapshot_delay_ms: str(3), is_gen_204: str(1) }
+[66] fetch GET https://0.stg.html-load.cc/feed/8p2/7v0/ecg/b1v/slickdeals.net/sur/ejhebjjofrzr8r8fcsg3cogeyr0frvzrvr0igexcsxmstrvpcjr8zyaoyr0r8yr0frqo6fmr0rkn5rp5rtvqqrlqrl5qnnrlr2si33cxyji3rkq8qrl958v9rprlvnrprtvr2cmr0rk9n8rlrtrl11r2igjogjrkxr02br2zr04org3c0rknr263zrkq8qv8v898n8nr2ojjrknrpr2maoxrk4m4fr2gfrgo3m6yskrknrcrcrcr2zoorkrwrmrrrmrmzrfrprurmw3irrrrrrrnrrrvrjrrr2zoorgfmr0rkrtr2mgrgoy3jfrkn88v85nrfqrebo988rrrxr1nrrrfqrebo988rrrxr1qrrrfqrebo988rmrxr1nrfqrebo988rmrxr19rfqrebonv8rmrxr1r2cpsrgo3c6rgmgfrkrfqr18rfqr1nrfqrerfqr18rfqr1qrfqrerfqr18rfqr19rfqrerfqr18rfqr15rfqrerfqr18rfqr11r2o3c6rgmgrgfufrk9887v88rfrpre9887q18rfqre9887v88rfrpre9887q18rfqre9887v88rfrpre9887q18rfqre9887v88rfrpre9887q18rfqrenv87v88rfrpre9887q18rfrpre9887v88r2m4mrknr2r0mr0frkjiorc9887q18rc9887v88rcrrrfrprujiorc9887q18rc9887v88rcrmrfrpru3mzbjsixrc9887q18rc9887v88rcrmrfrpru3mzbjsixrc9887q18rc9887v88rcrwrfrpru3mzbjsixrc9887q18rc9887v88rcnv87vr2yr04frknv8rtrtrpv9rprlrfrpruq1rlrt8nrt8rlrprfrprun1rlvrtnrpvnrlrfrprurl11rlnn19qrfrprun5rpn958rtrt9r2f46rknrc8rc51r2c3mrknr2fsrknr2siitmcrkrarwrf9rwecrtnrtsesv1rlyqs14rf9rrrxrf9rwnrprpvvrl11rtqrf9rrr5rxrf9rwnrprt8rprt5rt9qrf9rrr9rf9rwrrrir6rargrsyr9rcriwsjr9rwbrcr5vrnprgryrlrew9rhx1wc9c0r5rrr2zomsrkw3rarwrf9rw8888n9srlcrtrp4r0eyrtrf9rrrxrf9rwnrprpvvrl11rtqrf9rrr5rxrf9rwnrprt8rprt5rt9qrf9rrr9rf9rwrrrir6rargrsyru6warsswswa7rev1grertr5ps4r0rgr59rgwaruyzr2ye7crknr2r0jrknrprt8rprt5rtrtn5nqr2xajrknrprt8rprt5rtrtnr2yr07frkn5nnrfqren5nnrfqren5nnrfqren5nnrfqren5nnr2yr0kfrkqvrtrfqrennv1rfqrenrlrtrlrfqre9nvnrfqre95q9r2emhrknrlq8r2embrkrl1rtr2fs3rg7rk8r2fs3rgkrk8r2ej6mrk8rfrprenrfrpreqrfrpre9rfrpre5r2gsmfrknrfrpreqrfrpre9rfrpre5rfrpre1r2imr0rkqr2grgbmfrkqr2grgbrkn8rt8r2grghrknrlq8r2grgybrkn818r2grgyhrknrlq8r2grgsr0rkq5r2grgfr0rkqr2grgjurkrc988r2r0asrk9qr2esrk9nr2p6jrkqr2gysbrkwskrojwawsr6r4w3krafra2raqri2w3grsr9rafraar1ker9raframrafra2ru8rhre5hri2s9r6uzgrs2ru9ram7gr0ws7frirwrrfepwcferehmr62rjmrir1jeratr6isarljywzwcjramhmrsrxrj5ri2rrgr6us9rhre5krsrxsmwzr97eratr06eqr0fw9r9rmrwyryro6ewsw3mrirera7r6rwzgrsre59r6us5ri2ra7r6kror0rir1fmrxarl8ri8ruorjprobearjmrirera1rhr95hri2rrgrsreror0wzr9hhwzrjrvrvr2g3xrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r26mfrknr2ofurk9887q1qrfrpre9887q1qrfrpre9887q1qrfrpre9887q1qrfrpre9887q1qr2afurkqrlrt78rfrpreqrlrt78rfrpreqrlrt78rfrpreqrlrt78rfrpreqrlrt78r24hfrk5rfqre5rfqre5rfqre5rfqre5r2ibhrk988rfqre988rfqre988rfqre988rfqre988r2y9orkrubrsrnrwr7xtr6r9nucws12riar66er5rarmrsr1zrmru2rtrnryr77or0awcoepr5xeprjgyws1tw9wzbxcr7r6iwaws1pw9r912eq8r9rywsr1xwsrxr0vw9rubr6r6r7r6r5rjw3nr1w3m1rmr5txrmrswzr0rmrjr9wakr6rxru8wsrrrur9bhrurnrwa7or0awcoepr5xeprjgwaqrljruprskrhr9n0rxa7vrxr7rormswciur6r7ra1r0wso8cryw9rnr5wzr56rxtr19r0nror1ytrlrmwsprmw3rsr9jwswswsrj1rsryrmrursr7xrwrj8w9w3cw3nfrxrur5hr68r5rxwc9w9oyprrqwaqro7yt1wcer7r15rsnr12s2xw9r6wcz8w3txor5qra8r5q7hyqr0riy8jrur9wcr01rxpb9wa9r0hrhr1r6xw3rx8rlwsrrrur9r6zirssrywcmewsr18ywsrsgwaqrljrumrjnrjrxraqrjurjhrjr98hrs2brerirxrj8r52sjrjrxz1r5re87r5ruwa7rsuw3hr6rxr1rwr6tr1warrr5rarcrezwc6sr7wcgcrmrafw9wzxrnsrux0eqxw3y81r6wanbrer0wcxjrswcr5w3ews7ow3ws1r7r6r1r5jw3twcwcwsruowawspihrhw3xgrsrw8wazsrp1rlrctur9rrrrrvr2r0xjrknrprt8rprt5rtrprl1rl8r2mr0jrkrtq8r2oomr0rkr0r0c1r0vqsy5sertsesnrtnsr0q945en1cs8ertrlr059rtyyr2yr0tfrknrl8rlrp1rp9v8rfqre9rln9rtn81rp1rfqrenv9rtvrprt1rp1rfqrertvnrtrt8rpqnrfqreq5rtn1nnrt98r243arkq8r2cirgmr0rgfj3rkrarwrf9rwe1451syrpv8nrlvq5rprf9rrrxrf9rwnrprpvvrl11rtqrf9rrr5rxrf9rwnrprt8rprt5rt9qrf9rrr9rf9rwrrrrrcrr42way3w9rr71r6ra3vrpr0vzreuw35fqwsr2zexomr0frkrfqr1n88v85nrfqr1bo988rrrxr1nrrrfq9jiorc9887q18rc9887v88rcrrrfrprurfqr1n88v85nrfqr1bo988rrrxr1qrrrfq9jiorc9887q18rc9887v88rcrmrfrprurfqr1n88v85nrfqr1bo988rmrxr1nrfq93mzbjsixrc9887q18rc9887v88rcrmrfrprurfqr1n88v85nrfqr1bo988rmrxr19rfq93mzbjsixrc9887q18rc9887v88rcrwrfrprurfqr1n88v85nrfqr1bonv8rmrxr1rfq93mzbjsixrc9887q18rc9887v88rcnv87v88r2oergfufrk9887v88rfrpre9887q18rfrpru9887v88rfrpre9887q18rfrpru9887v88rfrpre9887q18rfrpru9887v88rfrpre9887q18rfrprunv87v88rfrpre9887q18rfrpre9887v88r2ozxfrkrerrfrvr2oeescrknr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 text/plain; charset=UTF-8)
+     shape: (non-JSON or parse failed)
+[67] fetch GET https://ad-delivery.net/px.gif?ch=2&e=0.3203379245777759  (0 )
+     shape: (binary/non-text — body not read)
+[68] fetch GET https://9.stg.html-load.cc/feed/8p2/7v0/nrp/slickdeals.net/sur/ejhebjjofrzr8r8yr0rvr0igexcsxmstrvpcjr84y6msiprvmsirqyr0rk9887q18r2yr0rgei7rgrknr2yr0pcjrknr2fbihyr0rknr2fmucrkq187q18r2crk8rv5rtv1rtrt9rlrpqv818q5r2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (0 )
+     shape: (binary/non-text — body not read)
+[69] fetch GET https://ad-delivery.net/px.gif?ch=1&e=0.16282045893763863  (0 )
+     shape: (binary/non-text — body not read)
+[70] fetch GET https://ab.dns-finder.com/meta/dns  (200 text/plain; charset=utf-8)
+     shape: (non-JSON or parse failed)
+[71] fetch GET https://ad-delivery.net/px.gif?ch=1&e=0.6245427548206254  (0 )
+     shape: (binary/non-text — body not read)
+[72] fetch GET https://ad-delivery.net/px.gif?ch=2&e=0.3411168728446272  (0 )
+     shape: (binary/non-text — body not read)
+[73] fetch GET https://9.stg.html-load.cc/feed/8p2/7v0/nrp/slickdeals.net/sur/ejhebjjofrzr8r8yr0rvr0igexcsxmstrvpcjr84y6msiprvmsirqyr0rk9887q18r2yr0rgei7rgrknr2yr0pcjrknr2fbihyr0rknr2fmucrkq187q18r2crk8rv5rpqv95585vrlvrtnq1r2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (0 )
+     shape: (binary/non-text — body not read)
+[74] xhr GET https://api.getblueshift.com/unity.gif?t=1780784883&e=pageload&r=&z=706233&x=13779bc333ac34fac08a37c930c61e97&k=506e873c-9cf3-1596-186c-ace2451810b7&u=https%3A%2F%2Fslickdeals.net%2F  (200 image/gif)
+     shape: (non-JSON or parse failed)
+[75] fetch GET https://ad-delivery.net/px.gif?ch=2&e=0.6109384132078156  (0 )
+     shape: (binary/non-text — body not read)
+[76] fetch GET https://9.stg.html-load.cc/feed/8p2/7v0/nrp/slickdeals.net/sur/ejhebjjofrzr8r8yr0rvr0igexcsxmstrvpcjr84y6msiprvmsirqyr0rk9887q18r2yr0rgei7rgrknr2yr0pcjrknr2fbihyr0rknr2fmucrkq187q18r2crk8rv9qrpnqrtrtqqrtrt5rprln8vr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (0 )
+     shape: (binary/non-text — body not read)
+[77] fetch GET https://ad-delivery.net/px.gif?ch=2&e=0.15898423782205362  (0 )
+     shape: (binary/non-text — body not read)
+[78] fetch GET https://9.stg.html-load.cc/feed/8p2/7v0/nrp/slickdeals.net/sur/ejhebjjofrzr8r8yr0rvr0igexcsxmstrvpcjr84y6msiprvmsirqyr0rk9887q18r2yr0rgei7rgrknr2yr0pcjrknr2fbihyr0rknr2fmucrkq187q18r2crk8rv9rp9rpv1vrl9rp88rlv8vr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (0 )
+     shape: (binary/non-text — body not read)
+[79] fetch GET https://ad-delivery.net/px.gif?ch=2&e=0.8561462064467246  (0 )
+     shape: (binary/non-text — body not read)
+[80] fetch GET https://9.stg.html-load.cc/feed/8p2/7v0/nrp/slickdeals.net/sur/ejhebjjofrzr8r8yr0rvr0igexcsxmstrvpcjr84y6msiprvmsirqyr0rk9887q18r2yr0rgei7rgrknr2yr0pcjrknr2fbihyr0rknr2fmucrkq187q18r2crk8rv51rprl1v1nn5nrpqq9rpr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (0 )
+     shape: (binary/non-text — body not read)
+[81] fetch POST https://api.btloader.com/pv?nlf=false&tid=TucnhrNix-Kd7jvERW-9e9f0cda87&sid=tlUrZ26DB-xzv3In8A-9e9f0c1a61&cv=2.1.189-1-gf2b7278&upapi=true  (204 )
+     shape: (binary/non-text — body not read)
+[82] fetch POST https://l7ox5un97g.execute-api.us-west-2.amazonaws.com/sqs/send/data-solutions-events-impressions  (200 text/xml)
+     shape: (non-JSON or parse failed)
+[83] fetch POST https://www.google-analytics.com/g/collect?v=2&tid=G-Z225M3JMEW&gtm=45je6631v893757872z878833589za20gzb78833589zd78833589&_p=1780784879702&gcs=G111&gcd=13v3v3v3v5l1&npa=0&dma=0&gdid=dYWJhMj&_eu=EAAAAAQC&are=1&cid=299496527.1776695582&frm=0&ir=1&pscdl=noapi&rcb=17&sr=1920x1080&tt=external&uaa=arm&uab=64&uafvl=Chromium%3B148.0.7778.217%7CGoogle%2520Chrome%3B148.0.7778.217%7CNot%252FA)Brand%3B99.0.0.0&uam=&uamb=0&uap=macOS&uapv=26.5.1&uaw=0&ul=en-us&tag_exp=0~115616986~115938466~115938469~118228215~119027224&uid=1057687&sid=1780783932&sct=29&seg=1&dl=https%3A%2F%2Fslickdeals.net%2F&dt=Slickdeals%3A%20The%20Best%20Deals%2C%20Coupons%2C%20Promo%20Codes%20%26%20Discounts&_s=1&tfd=6532  (0 )
+     shape: (binary/non-text — body not read)
+[84] fetch POST /ad-stats/1/ad-events  (200 application/json)
+     shape: { token: str(3) }
+[85] fetch POST /ad-stats/1/ad-events  (200 application/json)
+     shape: { token: str(3) }
+[86] fetch POST https://l7ox5un97g.execute-api.us-west-2.amazonaws.com/sqs/send/data-solutions-events-impressions  (200 text/xml)
+     shape: (non-JSON or parse failed)
+[87] fetch POST https://l7ox5un97g.execute-api.us-west-2.amazonaws.com/sqs/send/data-solutions-events-impressions  (200 text/xml)
+     shape: (non-JSON or parse failed)
+[88] fetch POST /ad-stats/1/ad-events  (200 application/json)
+     shape: { token: str(3) }
+[89] fetch POST https://5.stg.html-load.cc/feed/bw9/c8g/wax/hq1/csr/slickdeals.net/sur/ejhebjjofrzr8r8hcerceyppc3rvyr0frvyofrvyayuiprcyr0fkfjcarvsiar8cr8r0jer8emr0rqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json;charset=UTF-8)
+     shape: { requestId: str(36), contextual: { slots: [1 × { meta: [2 × …], targeting: [6 × …], mediaType: str(1), slotID: str(26), amzniid: str(66), amznactt: str(10), amznp: str(6), amznbid: str(6), amznsz: str(7), crid: str(18), amzndeal: str(11), size: str(7) }], host: str(57), status: str(2), cfe: boolean, ev: boolean, cfn: str(30), cb: str(1), cmp: str(122) } }
+[90] fetch POST https://5.stg.html-load.cc/feed/bw9/c8g/wax/hq1/csr/slickdeals.net/sur/ejhebjjofrzr8r8hcerceyppc3rvyr0frvyofrvyayuiprcyr0fkfjcarvsiar8cr8r0jer8emr0rqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json;charset=UTF-8)
+     shape: { requestId: str(36), contextual: { slots: [1 × { meta: [3 × …], targeting: [5 × …], mediaType: str(1), slotID: str(32), amzniid: str(66), amznactt: str(4), amznp: str(6), amznbid: str(6), amznsz: str(7), crid: str(8), size: str(7) }], host: str(57), status: str(2), cfe: boolean, ev: boolean, cfn: str(30), cb: str(1), cmp: str(122) } }
+[91] fetch POST https://5.stg.html-load.cc/feed/bw9/c8g/wax/hq1/csr/slickdeals.net/sur/ejhebjjofrzr8r8hcerceyppc3rvyr0frvyofrvyayuiprcyr0fkfjcarvsiar8cr8r0jer8emr0rqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json;charset=UTF-8)
+     shape: { requestId: str(36), contextual: { slots: [1 × { meta: [2 × …], targeting: [6 × …], mediaType: str(1), slotID: str(13), amzniid: str(66), amznactt: str(10), amznp: str(6), amznbid: str(7), amznsz: str(6), crid: str(18), amzndeal: str(11), size: str(6) }], host: str(57), status: str(2), cfe: boolean, ev: boolean, cfn: str(30), cb: str(1), cmp: str(122) } }
+[92] fetch GET https://8.stg.html-load.cc/feed/bw9/3v2/hqi/slickdeals.net/sur/ejhebjjofrzr8r84yfjxypcrv3gemsipo3i2csjrvsiar8yr8yomr84yfjxypcrv2fiprqyssigpjrgmr0rkn85rp5r2fmjcrgmr0rkv8vnrtrlr2uipcrgmr0rk9rl8nvq9r2fmucrgmr0rkn1r2yxjrgfmucrgmr0frkn8r2gfrgo3m6yskrknrcrcrcr2cmr0rgmr01rcfkpsrvsiark8rf1runrf1rurf1rurf1rurf1rurf1rur234rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr0iaymprkfxmstr0cyxfrvpcjr2jzrgmrvoyzcrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr04orgyr0rggpmjrgsir0crkrfqr1n88v85nrfqr1bo988rmrxr19r2jtrg4xmpjrkoe2frgxmjcrg6n8rvq8rv8r27rgfig3scrvjmr0rkgrpq9yr0e1rtrc4evvrc5r0r0crce51nrcss4rp9rty415n4r2xrgoergemr0rgmr0rkrpcrt91sr0rtrcyrl4rprc5rteyrcrle1nrcrl1r0e1rlrl9c15yr2orgfs3ccprg3cfrknrlq87n8rt8r23orgfcsg3crknr27rgmaorvc7jrvjmr0rkgn4r0vvn9rlrc9rps1rc5cy9rcyrprprprcvcrtyrp4rlv5vrtyr2orgzomr0rkrfqr1n88v85nrfqr1bo988rmrxr19rfq93mzbjsixrc9887q18rc9887v88rcrwr2argsbrggyrkrfqqreb3iamgarfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr7iizxcrfq8reb3iacrfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr6ijrfqr1rrw5rm3ypr0rfqqrfrpre6rf9rwrfqqrlrlrfqqr2argsbrgaiemxcrkrf9r18r2argsbrgoxyj4i3arkaysrhr9r2fxijfrknr23ypr0rk8rvrprl885rtqvn5qvrtrlrt9r2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { status: str(2), account_id: number, site_id: number, zone_id: number, size_id: number, alt_size_ids: [1 × number], tracking: str(0), inventory: { page: str(23), dfp_ad_unit_code: str(31), domain: str(14) }, ads: [2 × { status: str(2), impression_id: str(36), size_id: str(2), ad_id: str(7), advertiser: number, network: number, creative_id: str(14), seat: number, w: number, h: number, type: str(6), script: str(13932), campaign_id: number, rtb_rule_id: number, cpm: number, adomain: [1 × str(11)] }] }
+[93] fetch GET https://8.stg.html-load.cc/feed/bw9/3v2/hqi/slickdeals.net/sur/ejhebjjofrzr8r84yfjxypcrv3gemsipo3i2csjrvsiar8yr8yomr84yfjxypcrv2fiprqyssigpjrgmr0rkn85rp5r2fmjcrgmr0rkv8vnrtrlr2uipcrgmr0rk9rl8nvq9r2fmucrgmr0rkn1r2yxjrgfmucrgmr0frkrlrfqren8r2gfrgo3m6yskrknrcrcrcr2cmr0rgmr01rcfkpsrvsiark8rf1runrf1rurf1rurf1rurf1rurf1rur234rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr0iaymprkfxmstr0cyxfrvpcjr2jzrgmrvoyzcrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr04orgyr0rggpmjrgsir0crkrfqr1n88v85nrfqr1bonv8rmrxr1r2jtrg4xmpjrkoe2frgxmjcrg6n8rvq8rv8r27rgfig3scrvjmr0rkgr0cv1vsrpercscccrc5rp9r0rcyev9rcy89885sve5r0er2xrgoergemr0rgmr0rks4rpvrtnrtrprcey5nrc5r05r0rcyyqr0rc1qnnrpqrp1c1srtr2orgfs3ccprg3cfrknrlq87n8rt8r23orgfcsg3crknr27rgmaorvc7jrvjmr0rkgrty9nrp1rperc485vrc51rtqrcrl4ssrc4rp1rly15sqqe5r2orgzomr0rkrfqr1n88v85nrfqr1bonv8rmrxr1rfq93mzbjsixrc9887q18rc9887v88rcnv87v88r2argsbrggyrkrfqqreb3iamgarfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr7iizxcrfq8reb3iacrfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr6ijrfqr1rrw5rm3ypr0rfqqrfrpre6rf9rwrfqqrlrlrfqqr2argsbrgaiemxcrkrf9r18r2argsbrgoxyj4i3arkaysrhr9r2fxijfrknr23ypr0rk8rvrt91vrtqq118n9rl81rtr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { status: str(2), account_id: number, site_id: number, zone_id: number, size_id: number, alt_size_ids: [2 × number], tracking: str(0), inventory: { page: str(23), dfp_ad_unit_code: str(30), domain: str(14) }, ads: [4 × { status: str(2), impression_id: str(36), size_id: str(2), ad_id: str(7), advertiser: number, network: number, creative_id: str(14), seat: number, w: number, h: number, type: str(6), script: str(12964), campaign_id: number, rtb_rule_id: number, cpm: number, adomain: [1 × str(11)] }] }
+[94] fetch GET https://8.stg.html-load.cc/feed/bw9/3v2/hqi/slickdeals.net/sur/ejhebjjofrzr8r84yfjxypcrv3gemsipo3i2csjrvsiar8yr8yomr84yfjxypcrv2fiprqyssigpjrgmr0rkn85rp5r2fmjcrgmr0rkv8vnrtrlr2uipcrgmr0rk9rl8nvq9r2fmucrgmr0rkqr2gfrgo3m6yskrknrcrcrcr2cmr0rgmr01rcfkpsrvsiark8rf1runrf1rurf1rurf1rurf1rurf1rur234rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jzrgmrvr0iaymprkfxmstr0cyxfrvpcjr2jzrgmrvoyzcrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jtrg4xmpjrkoe2frgxmjcrg6n8rvq8rv8r27rgfig3scrvjmr0rkgc8nrlcr0e4rc81cr0rc5cqvrcrl5rtvrcrp199n8cerl9qsr2xrgoergemr0rgmr0rk5rlrp49rpcqrc1vn4rc59cyrcrtsc4rcqsc5r0sqrl1155r2orgfs3ccprg3cfrknrlq87n8rt8r23orgfcsg3crknr27rgmaorvc7jrvjmr0rkgertrlyqrpsrprc5rpc8rc5rlsyrcrtrlr01rcc81nqqqsr0seer2orgzomr0rkrfqr1n88v85nrfqr1borpqrtrmrxr1rfq9amr0r0xcrcrpqrt7rl8r2argsbrggyrkrfqqreb3iamgarfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr7iizxcrfq8reb3iacrfqqrfrpre6rf9rwrfqqn5rtrfqqrfqrerfqqr6ijrfqr1rrw5rm3ypr0rfqqrfrpre6rf9rwrfqqrlrlrfqqr2argsbrgaiemxcrkrf9r18r2argsbrgoxyj4i3arkaysrhr9r2fxijfrknr23ypr0rk8rvnvv91nrln5n8vrt515rpr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { status: str(2), account_id: number, site_id: number, zone_id: number, size_id: number, tracking: str(0), inventory: { page: str(23), domain: str(14) }, ads: [1 × { status: str(2), impression_id: str(36), size_id: str(1), ad_id: str(7), advertiser: number, network: number, creative_id: str(14), seat: number, w: number, h: number, type: str(6), script: str(13090), campaign_id: number, rtb_rule_id: number, cpm: number, adomain: [1 × str(8)] }] }
+[95] fetch POST https://4.stg.html-load.cc/feed/51l/29r/jio/slickdeals.net/sur/ejhebjjofrzr8r8r0m3csjrvyr0f363rvi3zr8emr0r8emr0r0c3r8r0m3csjgrpr02j0furqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (500 text/plain;charset=UTF-8)
+     shape: (non-JSON or parse failed)
+[96] fetch POST https://3.stg.html-load.cc/feed/bw9/cwi/j2v/slickdeals.net/sur/ejhebjjofrzr8r8jx7rv9xm4jrvsiar8bcyr0c3r8ygsjmiprqxmerko3cemr0r26rkn8rvq8rv8r23c4c33c3rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jay7rkn188r2gfrgo3m6yskrknrcrcrcr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { status: str(6) }
+[97] fetch POST https://2.stg.html-load.cc/feed/bw9/s16/ifj/slickdeals.net/sur/ejhebjjofrzr8r8mervyr0p7frvsiar8gjr869r8o3cemr0rqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { version: str(5), tags: [1 × { uuid: str(36), tag_id: number, auction_id: str(19), nobid: boolean, no_ad_url: str(1270), timeout_ms: number, ad_profile_id: number, rtb_video_fallback: boolean, publisher_id: number, ads: [1 × { cpm: …, cpm_publisher_currency: …, publisher_currency_code: …, publisher_currency_codename: …, adomain: …, content_source: …, ad_type: …, buyer_member_id: …, creative_id: …, media_type_id: …, media_subtype_id: …, brand_category_id: …, brand_id: …, is_sov: …, is_roadblock: …, bidder_id: …, client_initiated_ad_counting: …, is_managed: …, no_consent: …, rtb: … }] }] }
+[98] fetch POST https://5.stg.html-load.cc/feed/bw9/407/673/slickdeals.net/sur/ejhebjjofrzr8r8bjxervsyfyxcacr0myrvsiar8iocp3jer8oe2frqfrkqqv9rtrtr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { id: str(36), seatbid: [] }
+[99] fetch POST https://4.stg.html-load.cc/feed/8p2/b1e/9jj/slickdeals.net/sur/ejhebjjofrzr8r83jerviocp7rvpcjr8iocp3jeer8o3cemr02frqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 text/plain)
+     shape: { id: str(36), nbr: number }
+[100] fetch POST https://4.stg.html-load.cc/feed/8p2/b1e/9jj/slickdeals.net/sur/ejhebjjofrzr8r83jerviocp7rvpcjr8iocp3jeer8o3cemr02frqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 text/plain)
+     shape: { id: str(36), nbr: number }
+[101] fetch POST https://4.stg.html-load.cc/feed/51l/29r/jio/slickdeals.net/sur/ejhebjjofrzr8r8r0m3csjrvyr0f363rvi3zr8emr0r8emr0r0c3r8r0m3csjgrpr02j0furqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (500 text/plain;charset=UTF-8)
+     shape: (non-JSON or parse failed)
+[102] fetch POST https://2.stg.html-load.cc/feed/bw9/s16/ifj/slickdeals.net/sur/ejhebjjofrzr8r8mervyr0p7frvsiar8gjr869r8o3cemr0rqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { version: str(5), tags: [1 × { uuid: str(36), tag_id: number, auction_id: str(19), nobid: boolean, no_ad_url: str(1266), timeout_ms: number, ad_profile_id: number, rtb_video_fallback: boolean, publisher_id: number, ads: [1 × { cpm: …, cpm_publisher_currency: …, publisher_currency_code: …, publisher_currency_codename: …, adomain: …, content_source: …, ad_type: …, buyer_member_id: …, creative_id: …, media_type_id: …, media_subtype_id: …, brand_category_id: …, brand_id: …, is_sov: …, is_roadblock: …, bidder_id: …, client_initiated_ad_counting: …, is_managed: …, no_consent: …, rtb: … }] }] }
+[103] fetch POST https://3.stg.html-load.cc/feed/bw9/cwi/j2v/slickdeals.net/sur/ejhebjjofrzr8r8jx7rv9xm4jrvsiar8bcyr0c3r8ygsjmiprqxmerko3cemr0r26rkn8rvq8rv8r23c4c33c3rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jay7rkn188r2gfrgo3m6yskrknrcrcrcr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { status: str(6) }
+[104] fetch POST https://5.stg.html-load.cc/feed/bw9/407/673/slickdeals.net/sur/ejhebjjofrzr8r8bjxervsyfyxcacr0myrvsiar8iocp3jer8oe2frqfrkqqv9rt1r2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { id: str(36), seatbid: [] }
+[105] fetch POST https://5.stg.html-load.cc/feed/bw9/407/673/slickdeals.net/sur/ejhebjjofrzr8r8bjxervsyfyxcacr0myrvsiar8iocp3jer8oe2frqfrkqqv9rt9r2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { id: str(36), seatbid: [] }
+[106] fetch POST https://0.stg.html-load.cc/feed/bw9/zae/80n/slickdeals.net/sur/ejhebjjofrzr8r8ejx3rvfby3cjb3igzbrvsiar8gpm6c3fyxr86nrqfgooxkrgmr0rkwswagqrmwz6nr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { cookieSyncUrls: [5 × str(94)] }
+[107] fetch POST https://4.stg.html-load.cc/feed/8p2/b1e/9jj/slickdeals.net/sur/ejhebjjofrzr8r83jerviocp7rvpcjr8iocp3jeer8o3cemr02frqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 text/plain)
+     shape: { id: str(36), nbr: number }
+[108] fetch POST https://3.stg.html-load.cc/feed/bw9/cwi/j2v/slickdeals.net/sur/ejhebjjofrzr8r8jx7rv9xm4jrvsiar8bcyr0c3r8ygsjmiprqxmerko3cemr0r26rkn8rvq8rv8r23c4c33c3rkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r2jay7rkn188r2gfrgo3m6yskrknrcrcrcr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { status: str(6) }
+[109] fetch POST https://2.stg.html-load.cc/feed/bw9/s16/ifj/slickdeals.net/sur/ejhebjjofrzr8r8mervyr0p7frvsiar8gjr869r8o3cemr0rqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json; charset=utf-8)
+     shape: { version: str(5), tags: [1 × { uuid: str(36), tag_id: number, auction_id: str(19), nobid: boolean, ad_profile_id: number }] }
+[110] fetch POST https://4.stg.html-load.cc/feed/51l/29r/jio/slickdeals.net/sur/ejhebjjofrzr8r8r0m3csjrvyr0f363rvi3zr8emr0r8emr0r0c3r8r0m3csjgrpr02j0furqyfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (500 text/plain;charset=UTF-8)
+     shape: (non-JSON or parse failed)
+[111] fetch POST https://8.stg.html-load.cc/feed/bw9/n55/wil/slickdeals.net/sur/ejhebjjofrzr8r8beiocpemr0rvogeayjmsrvsiar8j3ypfxyji3rqfig3scrko3cemr0rcsxmcpjr2zumorknr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (204 )
+     shape: (binary/non-text — body not read)
+[112] fetch POST https://9.stg.html-load.cc/feed/bw9/zym/vlw/slickdeals.net/sur/ejhebjjofrzr8r8z3mr0rcemr0r0c3rvs3mjcirvsiar8iocp3jergqrg1r8oe2fr8ygsjmipr83c0gcfjrqo3i4mxcrar0rkq8rpr2y6rk9rpr2h6rkn8rvq8rv8r2serk5rp8v9qrp59rp5r2xfy6ymxrknr2pcjhi3trar0rknqrl8r2zumorknr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { id: str(36), cur: str(3), seatbid: [1 × { seat: str(2), bid: [1 × { id: …, impid: …, price: …, adomain: …, bundle: …, iurl: …, cid: …, crid: …, lurl: …, cat: …, w: …, h: …, adm: …, exp: …, ext: … }] }] }
+[113] fetch POST https://9.stg.html-load.cc/feed/bw9/zym/vlw/slickdeals.net/sur/ejhebjjofrzr8r8z3mr0rcemr0r0c3rvs3mjcirvsiar8iocp3jergqrg1r8oe2fr8ygsjmipr83c0gcfjrqo3i4mxcrar0rkq8rpr2y6rk9rpr2h6rkn8rvq8rv8r2serkrp89rlnrprt55qnr2xfy6ymxrknr2pcjhi3trar0rknqrl8r2zumorknr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { id: str(36), cur: str(3), seatbid: [1 × { seat: str(2), bid: [1 × { id: …, impid: …, price: …, adomain: …, bundle: …, iurl: …, cid: …, crid: …, lurl: …, cat: …, w: …, h: …, adm: …, exp: …, ext: … }] }] }
+[114] fetch POST https://8.stg.html-load.cc/feed/bw9/n55/wil/slickdeals.net/sur/ejhebjjofrzr8r8beiocpemr0rvogeayjmsrvsiar8j3ypfxyji3rqfig3scrko3cemr0rcsxmcpjr2zumorknr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (204 )
+     shape: (binary/non-text — body not read)
+[115] fetch POST https://8.stg.html-load.cc/feed/bw9/n55/wil/slickdeals.net/sur/ejhebjjofrzr8r8beiocpemr0rvogeayjmsrvsiar8j3ypfxyji3rqfig3scrko3cemr0rcsxmcpjr2zumorknr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (204 )
+     shape: (binary/non-text — body not read)
+[116] fetch POST https://9.stg.html-load.cc/feed/bw9/zym/vlw/slickdeals.net/sur/ejhebjjofrzr8r8z3mr0rcemr0r0c3rvs3mjcirvsiar8iocp3jergqrg1r8oe2fr8ygsjmipr83c0gcfjrqo3i4mxcrar0rkq8rpr2y6rk9rpr2h6rkn8rvq8rv8r2serkrtrl95rtn9rt9nrpr2xfy6ymxrknr2pcjhi3trar0rknqrl8r2zumorknr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 application/json)
+     shape: { id: str(36), cur: str(3), seatbid: [1 × { seat: str(2), bid: [1 × { id: …, impid: …, price: …, adomain: …, bundle: …, iurl: …, cid: …, crid: …, lurl: …, cat: …, w: …, h: …, adm: …, exp: …, ext: … }] }] }
+[117] fetch GET https://0.stg.html-load.cc/feed/8p2/7v0/ecg/b1v/slickdeals.net/sur/ejhebjjofrzr8r8fcsg3cogeyr0frvzrvr0igexcsxmstrvpcjr8zyaoyr0r8yr0frqo6fmr0rkn5rp5rtvqqrlqrl5qnnrlr2si33cxyji3rkq99vn5n8q19rl9955r2cmr0rk9n8rlrtrl11r2igjogjrkxr02br2zr04org3c0rknr263zrkq8qv8v898n8nr2ojjrknrpr2maoxrk4m4fr2gfrgo3m6yskrknrcrcrcr2zoorkrwrmrrrmrmzrfrprurmw3irrrrrrrnrrrvrjrrr2zoorgfmr0rkrtr2mgrgoy3jfrkn88v85nrfqrebo988rmrxr19r2cpsrgo3c6rgmgfrkrfqr18rfqr1nr2o3c6rgmgrgfufrk9887v88rfrpre9887q18r2m4mrkvr2r0mr0frk3mzbjsixrc9887q18rc9887v88rcrwr2yr04frkrl11rlnn19qr2f46rknrc8rc51r23sfrknr2c3mrknr2fsrknr2siitmcrkrarwrf9rwecrtnrtsesv1rlyqs14rf9rrrxrf9rwnrprpvvrl11rtqrf9rrr5rxrf9rwnrprt8rprt5rt9qrf9rrr9rf9rwrrrir6rargrsyr9rcriwsjr9rwbrcr5vrnprgryrlrew9rhx1wc9c0r5rrr2zomsrkw3rarwrf9rw8888n9srlcrtrp4r0eyrtrf9rrrxrf9rwnrprpvvrl11rtqrf9rrr5rxrf9rwnrprt8rprt5rt9qrf9rrr9rf9rwrrrir6rargrsyru6warsswswa7rev1grertr5ps4r0rgr59rgwaruyzr2ye7crknr2r0jrknrprt8rprt5rlnnrtrprpr2xajrknrprt8rprt5rlnnr2yr07frkn5nnr2yr0kfrkn1rpvnr2emhrknrlq8r2embrkrl1rtr2fs3rg7rk8r2fs3rgkrknv8nrpr2ej6mrk8r2gsmfrk5r2imr0rkqr2grgbmfrkqr2grgbrkn8rt8r2grghrknrlq8r2grgybrkn818r2grgyhrknrlq8r2grgsr0rkq5r2grgfr0rkqr2grgjurkrc988r2r0asrk9qr2esrk9nr2p6jrkqr2gysbrkwskrojwawsr6r4w3krafra2raqri2w3grsr9rafraar1ker9raframrafra2ru8rhre5hri2s9r6uzgrs2ru9ram7gr0ws7frirwrrfepwcferehmr62rjmrir1jeratr6isarljywzwcjramhmrsrxrj5ri2rrgr6us9rhre5krsrxsmwzr97eratr06eqr0fw9r9rmrwyryro6ewsw3mrirera7r6rwzgrsre59r6us5ri2ra7r6kror0rir1fmrxarl8ri8ruorjprobearjmrirera1rhr95hri2rrgrsreror0wzr9hhwzrjrvrvr2g3xrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r26mfrknr2ofurk9887rcnr2afurkqrlrt7rcnr24hfrk1nvr2ibhrk988r2ofjfrkrrrh3war7fptargrarour1rntrtrrrsfro6r9vbgw3r1r5rlircmrsrmw9oryr68w91rtr1r6r42r5r1w3r9w9nhpwc8qmw3krhr6rsra9hwar43grtrg5rjw3r0ur6cr7r07r0jg0rxrntx8jre6trir6jw3rir13r6rlortrfqrerrrh3war7fprmrxnra5ty7r6r7rc39er4r9r7r0rprsrj39ratr9rgvr5tp58vrors1rx7rl9r1rryhrchwabwzprupiwssrupwczr4ik5rce4r4ry0rirpraryvr9mra9r7cwsrh4rawcrpjuwzrmrsxrur1wzr6zjtrfqrerrrh3war7fa9rjbhxrr9cw3q1ryrr5rnrl8rp0hyrtqr1erwhr5rowzr9rxwzrrrsrpnmr5bryporrrorsb0jrrerurgr0r5rmowcrrjo5arxrlrga4krxrjr7rorhrm54fcrwjxrircrhftm1rsruqfrnrcws1rwyzr2y9orkrubrsrnrwr7xtr6r9nucws12riar66er5rarmrsr1zrmru2rtrnryr77or0awcoepr5xeprjgyws1tw9wzbxcr7r6iwaws1pw9r912eq8r9rywsr1xwsrxr0vw9rubr6r6r7r6r5rjw3nr1w3m1rmr5txrmrswzr0rmrjr9wakr6rxru8wsrrrur9bhrurnrwa7or0awcoepr5xeprjgwaqrljruprskrhr9n0rxa7vrxr7rormswciur6r7ra1r0wso8cryw9rnr5wzr56rxtr19r0nror1ytrlrmwsprmw3rsr9jwswswsrj1rsryrmrursr7xrwrj8w9w3cw3nfrxrur5hr68r5rxwc9w9oyprrqwaqro7yt1wcer7r15rsnr12s2xw9r6wcz8w3txor5qra8r5q7hyqr0riy8jrur9wcr01rxpb9wa9r0hrhr1r6xw3rx8rlwsrrrur9r6zirssrywcmewsr18ywsrsgwaqrljrumrjnrjrxraqrjurjhrjr98hrs2brerirxrj8r52sjrjrxz1r5re87r5ruwa7rsuw3hr6rxr1rwr6tr1warrr5rarcrezwc6sr7wcgcrmrafw9wzxrnsrux0eqxw3y81r6wanbrer0wcxjrswcr5w3ews7ow3ws1r7r6r1r5jw3twcwcwsruowawspihrhw3xgrsrw8wazsrp1rlrctur9rrrrrvr2r0xjrknrprt8rprt5rtrprl1rl8r2mr0jrkrtq8r2oomr0rkr0r0c1r0vqsy5sertsesnrtnsr0q945en1cs8ertrlr059rtyyr2yr0tfrkrtvnrtrt8rpqnr243arkq8r2cirgmr0rgfj3rkrarwrf9rwe1451syrpv8nrlvq5rprf9rrrxrf9rwnrprpvvrl11rtqrf9rrr5rxrf9rwnrprt8rprt5rt9qrf9rrr9rf9rwrrrrrcrr42way3w9rr71r6ra3vrpr0vzreuw35fqwsr2zexomr0frkrfqr1n88v85nrfqr1bo988rmrxr19rfq93mzbjsixrc9887q18rc9887v88rcrwr2oergfufrk9887v88rfrpre9887q18r2ozxfrkrerrfrvr2oeescrknr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 text/plain; charset=UTF-8)
+     shape: (non-JSON or parse failed)
+[118] fetch GET https://0.stg.html-load.cc/feed/8p2/7v0/ecg/b1v/slickdeals.net/sur/ejhebjjofrzr8r8fcsg3cogeyr0frvzrvr0igexcsxmstrvpcjr8zyaoyr0r8yr0frqo6fmr0rkn5rp5rtvqqrlqrl5qnnrlr2si33cxyji3rkn5vrtrtrp58q55nrprlvrlr2cmr0rk9n8rlrtrl11r2igjogjrkxr02br2zr04org3c0rknr263zrkq8qv8v898n8nr2ojjrknrpr2maoxrk4m4fr2gfrgo3m6yskrknrcrcrcr2zoorkrwrmrrrmrmzrfrprurmw3irrrrrrrnrrrvrjrrr2zoorgfmr0rkrtr2mgrgoy3jfrkn88v85nrfqrebonv8rmrxr1r2cpsrgo3c6rgmgfrkrfqr18rfqr1nr2o3c6rgmgrgfufrknv87v88rfrpre9887q18rfrpre9887v88r2m4mrkrpr2r0mr0frk3mzbjsixrc9887q18rc9887v88rcnv87vr2yr04frkn5rpn958rtrt9r2f46rknrc8rc51r23sfrknr2c3mrknr2fsrknr2siitmcrkrarwrf9rwecrtnrtsesv1rlyqs14rf9rrrxrf9rwnrprpvvrl11rtqrf9rrr5rxrf9rwnrprt8rprt5rt9qrf9rrr9rf9rwrrrir6rargrsyr9rcriwsjr9rwbrcr5vrnprgryrlrew9rhx1wc9c0r5rrr2zomsrkw3rarwrf9rw8888n9srlcrtrp4r0eyrtrf9rrrxrf9rwnrprpvvrl11rtqrf9rrr5rxrf9rwnrprt8rprt5rt9qrf9rrr9rf9rwrrrir6rargrsyru6warsswswa7rev1grertr5ps4r0rgr59rgwaruyzr2ye7crknr2r0jrknrprt8rprt5rlnnrlqvr2xajrknrprt8rprt5rlnnr2yr07frkn5nnr2yr0kfrknv59qr2emhrknrlq8r2embrkrl1rtr2fs3rg7rk8r2fs3rgkrknv8rpvr2ej6mrk8r2gsmfrk1r2imr0rkqr2grgbmfrkqr2grgbrkn8rt8r2grghrknrlq8r2grgybrkn818r2grgyhrknrlq8r2grgsr0rkq5r2grgfr0rkqr2grgjurkrc988r2r0asrk9qr2esrk9nr2p6jrkqr2gysbrkwskrojwawsr6r4w3krafra2raqri2w3grsr9rafraar1ker9raframrafra2ru8rhre5hri2s9r6uzgrs2ru9ram7gr0ws7frirwrrfepwcferehmr62rjmrir1jeratr6isarljywzwcjramhmrsrxrj5ri2rrgr6us9rhre5krsrxsmwzr97eratr06eqr0fw9r9rmrwyryro6ewsw3mrirera7r6rwzgrsre59r6us5ri2ra7r6kror0rir1fmrxarl8ri8ruorjprobearjmrirera1rhr95hri2rrgrsreror0wzr9hhwzrjrvrvr2g3xrkbjjofrf9rrrfqr1rfqr1fxmstr0cyxfrvpcjrfqr1r26mfrknr2ofurk9887rcnr2afurkqrlrt7rcnr24hfrk1nvr2ibhrk988r2ofjfrkrrrh3war7fptargrarour1rntrtrrrsfro6r9vbgw3r1r5rlircmrsrmw9oryr68w91rtr1r6r42r5r1w3r9w9nhpwc8qmw3krhr6rsra9hwar43grtrg5rjw3r0ur6cr7r07r0jg0rxrntx8jre6trir6jw3rir13r6rlortrfqrerrrh3war7fprmrxnra5ty7r6r7rc39er4r9r7r0rprsrj39ratr9rgvr5tp58vrors1rx7rl9r1rryhrchwabwzprupiwssrupwczr4ik5rce4r4ry0rirpraryvr9mra9r7cwsrh4rawcrpjuwzrmrsxrur1wzr6zjtrfqrerrrh3war7fx3wzr4wsgywazrjrxr905w9rof68r6rmgijhqr5r1r6zwsp1r9rt8rsnr6uxrurybyr9viror1ror5vrc6yyw9r5p8warnwcr63rckw9rmfvwzwsr6ryx042rchw9rxqwc7rlw3krt07rnhrerowsrwretr2y9orkrubrsrnrwr7xtr6r9nucws12riar66er5rarmrsr1zrmru2rtrnryr77or0awcoepr5xeprjgyws1tw9wzbxcr7r6iwaws1pw9r912eq8r9rywsr1xwsrxr0vw9rubr6r6r7r6r5rjw3nr1w3m1rmr5txrmrswzr0rmrjr9wakr6rxru8wsrrrur9bhrurnrwa7or0awcoepr5xeprjgwaqrljruprskrhr9n0rxa7vrxr7rormswciur6r7ra1r0wso8cryw9rnr5wzr56rxtr19r0nror1ytrlrmwsprmw3rsr9jwswswsrj1rsryrmrursr7xrwrj8w9w3cw3nfrxrur5hr68r5rxwc9w9oyprrqwaqro7yt1wcer7r15rsnr12s2xw9r6wcz8w3txor5qra8r5q7hyqr0riy8jrur9wcr01rxpb9wa9r0hrhr1r6xw3rx8rlwsrrrur9r6zirssrywcmewsr18ywsrsgwaqrljrumrjnrjrxraqrjurjhrjr98hrs2brerirxrj8r52sjrjrxz1r5re87r5ruwa7rsuw3hr6rxr1rwr6tr1warrr5rarcrezwc6sr7wcgcrmrafw9wzxrnsrux0eqxw3y81r6wanbrer0wcxjrswcr5w3ews7ow3ws1r7r6r1r5jw3twcwcwsruowawspihrhw3xgrsrw8wazsrp1rlrctur9rrrrrvr2r0xjrknrprt8rprt5rtrprl1rl8r2mr0jrkrtq8r2oomr0rkr0r0c1r0vqsy5sertsesnrtnsr0q945en1cs8ertrlr059rtyyr2yr0tfrkq5rtn1nnrt98r243arkq8r2cirgmr0rgfj3rkrarwrf9rwe1451syrpv8nrlvq5rprf9rrrxrf9rwnrprpvvrl11rtqrf9rrr5rxrf9rwnrprt8rprt5rt9qrf9rrr9rf9rwrrrrrcrr42way3w9rr71r6ra3vrpr0vzreuw35fqwsr2zexomr0frkrfqr1n88v85nrfqr1bonv8rmrxr1rfq93mzbjsixrc9887q18rc9887v88rcnv87v88r2oergfufrknv87v88rfrpre9887q18rfrpre9887v88r2ozxfrkrerrfrvr2oeescrknr2yfrcc7j3yrkrfrprmrfqqsip4mzrapr0c7rfqqrf9rr8rfrprw  (200 text/plain; charset=UTF-8)
+     shape: (non-JSON or parse failed)
+[119] fetch POST https://l7ox5un97g.execute-api.us-west-2.amazonaws.com/sqs/send/data-solutions-events-impressions  (200 text/xml)
+     shape: (non-JSON or parse failed)
+[120] fetch POST /ad-stats/1/ad-events  (200 application/json)
+     shape: { token: str(3) }
+
+=== END SLICKDEALS+ RECON ===
