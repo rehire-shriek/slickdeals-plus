@@ -1648,11 +1648,14 @@
             const sensitivity = (settings && settings.glitchSensitivity) || 'medium';
             const threshold = SENSITIVITY_THRESHOLD[sensitivity] ?? SENSITIVITY_THRESHOLD.medium;
 
-            // Tier A always alerts regardless of score/threshold.
-            // Otherwise, check the weighted score against the sensitivity threshold.
-            const alertByTier = topTier === 'A';
+            // Combination rule (primary): Tier-A always alerts; Tier-B alerts when paired
+            // with a price anomaly — this is the headline use-case (watched brand + big discount).
+            const tierBHit = !!(keywordHits && keywordHits.B && keywordHits.B.length);
+            const alertByCombo = (topTier === 'A') || (tierBHit && priceAnomaly);
+            // Secondary path: strong keyword-less anomaly (e.g. absurd ratio + high votes)
+            // can still clear the score threshold even without a keyword hit.
             const alertByScore = score >= threshold;
-            const alert = alertByTier || alertByScore;
+            const alert = alertByCombo || alertByScore;
 
             return {
                 alert,
