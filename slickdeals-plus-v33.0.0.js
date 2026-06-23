@@ -1594,16 +1594,16 @@
             let priceAnomaly = false; // set by price signals; gates B/C keyword contribution
 
             // ── Price signal: fail-OPEN guard ─────────────────────────────────
-            // If either price is unparseable (NaN), do NOT coerce to 0 — that fabricates
-            // false "free" / extreme-ratio signals. Instead, flag manualReview and return
-            // early with an alert so a human can inspect the card.
+            // Only an unparseable SALE price (currentPrice NaN) triggers manual review.
+            // A missing ORIGINAL/list price is benign — the absurd-ratio math no-ops on
+            // NaN (NaN>100 and NaN>0 are both false), and el.percent drives the anomaly
+            // signal independently, so scoring continues correctly. Flagging originalPrice
+            // NaN would fire manual-review on the majority of cards (no MSRP shown).
             const currentPrice = el.currentPrice;
             const originalPrice = el.originalPrice;
-            const currentBad = isNaN(currentPrice);
-            const originalBad = isNaN(originalPrice);
 
-            if (currentBad || originalBad) {
-                reasons.push('unparseable price — needs manual review');
+            if (isNaN(currentPrice)) {
+                reasons.push('unparseable sale price — needs manual review');
                 return { alert: true, score: 0, tier: null, reasons, manualReview: true };
             }
 
@@ -1653,7 +1653,12 @@
 
             // ── Keyword signals ────────────────────────────────────────────────
             const titleText = el.titleText || ''; // already .toLowerCase() per getDealData
-            const watchlist = (settings && settings.glitchKeywords) || ConstantsModule.DEFAULTS.glitchKeywords;
+            // Structural guard: a truthy but malformed glitchKeywords (e.g. {} or {A:'x'})
+            // is not usable — fall back to DEFAULTS rather than silently going keyword-deaf.
+            let watchlist = settings && settings.glitchKeywords;
+            if (!watchlist || !Array.isArray(watchlist.A) || !Array.isArray(watchlist.B) || !Array.isArray(watchlist.C)) {
+                watchlist = ConstantsModule.DEFAULTS.glitchKeywords;
+            }
             const keywordHits = _matchKeywords(titleText, watchlist);
 
             let topTier = null; // highest tier that contributed to score
@@ -1670,7 +1675,7 @@
                 if (keywordHits.B && keywordHits.B.length) {
                     if (priceAnomaly) {
                         score += 1.5;
-                        if (!topTier || topTier > 'B') topTier = 'B'; // A < B alphabetically, so keep A
+                        if (!topTier) topTier = 'B'; // Tier-A already set topTier='A' if it hit; otherwise promote to 'B'
                         reasons.push(`Tier-B keyword (paired): "${keywordHits.B.join('", "')}"`);
                     } else {
                         reasons.push(`Tier-B keyword (unpaired — no price anomaly, not scored): "${keywordHits.B.join('", "')}"`);
@@ -1762,11 +1767,19 @@
                 undefined, defaultSettings
             ), { alert: false });
 
-            // Fixture 5: Unparseable price → manualReview alert
-            assert('Unparseable price → manualReview', evaluateDealAnomaly(
+            // Fixture 5: Unparseable SALE price → manualReview alert (currentPrice NaN)
+            assert('Unparseable sale price → manualReview', evaluateDealAnomaly(
                 { titleText: 'mystery item', currentPrice: NaN, originalPrice: 100, percent: 0, votes: 0, isPromoted: false, hasData: true },
                 undefined, defaultSettings
             ), { alert: true, manualReview: true });
+
+            // Fixture 5b: Missing ORIGINAL price (NaN) + valid sale price + price anomaly
+            // → alert:true, manualReview:false (narrowed fail-open: only currentPrice NaN triggers review)
+            // percent=80 sets priceAnomaly + extreme discount +2; 'milwaukee' B hit paired → alert via combo rule
+            assert('Missing original price + anomaly → alert (no manualReview)', evaluateDealAnomaly(
+                { titleText: 'milwaukee drill set on sale', currentPrice: 25, originalPrice: NaN, percent: 80, votes: 10, isPromoted: false, hasData: true },
+                undefined, defaultSettings
+            ), { alert: true, manualReview: false });
 
             // Fixture 6: isPromoted → no-alert
             assert('isPromoted → no-alert', evaluateDealAnomaly(
@@ -1774,11 +1787,14 @@
                 undefined, defaultSettings
             ), { alert: false });
 
-            // Fixture 7: Dedup round-trip
+            // Fixture 7: Dedup round-trip — snapshot-and-restore so the self-test never
+            // pollutes the live store; repeated runs accumulate nothing.
+            const _storeSnap = _loadStore();
             const testThreadId = '__sdplus_selftest__' + Date.now();
             const pre = hasAlerted(testThreadId);
             markAlerted(testThreadId);
             const post = hasAlerted(testThreadId);
+            _saveStore(_storeSnap); // restore store byte-for-byte before asserting
             const dedupPass = pre === false && post === true;
             results.push({ label: 'dedup round-trip', pass: dedupPass, verdict: { pre, post } });
             console.log(`[sdPlus.testAnomaly] ${dedupPass ? 'PASS' : 'FAIL'} — dedup round-trip`, { pre, post });
@@ -2060,6 +2076,13 @@
             context.eventBus.on('settingsChanged', ({ key }) => {
                 const reprocessKeys = ['hidePromoted', 'freeOnly', 'goldTierOnly', 'highlightRating', 'highlightDiff', 'bypassRedirects', 'showDiff', 'minPrice', 'maxPrice', 'excludeKeywords', 'includeKeywords', 'glitchAlerts', 'glitchSensitivity'];
                 if (reprocessKeys.includes(key) || key === 'all') {
+                    // When glitchAlerts is explicitly toggled OFF, sweep any stale sdp-glitch-alert
+                    // highlights before the reprocess runs. The reprocess itself skips the gated
+                    // block (glitchAlerts=false), so it won't clear them on its own. One-time sweep
+                    // only on this explicit disable event — the default-off path is untouched.
+                    if (key === 'glitchAlerts' && !context.settings.getSettings().glitchAlerts) {
+                        document.querySelectorAll('.sdp-glitch-alert').forEach(el => el.classList.remove('sdp-glitch-alert'));
+                    }
                     context.processing.processAllCards(true).then(() => context.sorting.applySorting());
                 } else if (key === 'sortBy') {
                     context.sorting.applySorting();
