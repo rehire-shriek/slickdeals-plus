@@ -324,7 +324,21 @@
             colorRatingBG: '#dff0d8',
             colorDiffBG: '#d9edf7',
             colorBothBG: '#FFF9C4',
-            debugMode: false
+            debugMode: false,
+            // v33.1.0 — Glitch/home-run deal alert detection (T1)
+            // glitchAlerts: master toggle (off by default; menu toggle added in T2)
+            // glitchSensitivity: score cutoff tier ('low'=6, 'medium'=4, 'high'=2)
+            // glitchKeywords: tiered watchlist (A=always, B=paired, C=context-only)
+            glitchAlerts: false,
+            glitchSensitivity: 'medium',
+            glitchKeywords: {
+                // Tier A ×3 — always alert on any hit
+                A: ['price mistake', 'price error', 'pricing error', 'price glitch', 'pricing glitch', 'glitch', '0.01', '$0.01'],
+                // Tier B ×1.5 — alert only when paired with a price anomaly (>40% off or absurd ratio)
+                B: ['milwaukee', 'dewalt', 'makita', 'ryobi', 'rtx', 'ssd', 'nvme', 'oled', 'open box excellent'],
+                // Tier C ×0.5 — contributes only alongside an A/B hit or an extreme price; never alerts alone
+                C: ['clearance', 'ymmv', 'home depot', "lowe's", 'lowes', 'amazon', 'best buy']
+            }
         };
         return { SELECTORS, CLASS_NAMES, DEFAULTS };
     })();
@@ -1390,6 +1404,353 @@
     }
 
     // ============================================
+    // MODULE: Glitch Alert Detection (v33.1.0 — T1)
+    // ============================================
+    // Pure detection + persistence. No DOM writes, no toasts, no menu wiring.
+    // T2 will call evaluateDealAnomaly() + hasAlerted()/markAlerted() from processDealCard.
+    //
+    // Score/sensitivity cutoffs (tunable at T3 via DEFAULTS.glitchSensitivity):
+    //   'high'   → threshold  2  (catches near-misses; more alerts)
+    //   'medium' → threshold  4  (balanced; default)
+    //   'low'    → threshold  6  (only strong signals; fewer alerts)
+    //
+    // Signal weights:
+    //   Tier-A keyword hit   → +3
+    //   Tier-B keyword hit   → +1.5 (but see combination rule below)
+    //   Tier-C keyword hit   → +0.5 (paired only)
+    //   Extreme discount %   → +2   (percent >= 70)
+    //   Absurd ratio         → +3   (originalPrice>100 && currentPrice<=15, OR ratio<0.1)
+    //   isFireDeal (API)     → +1
+    //   isPopularDeal (API)  → +0.5
+    //   votes >= 200         → +1
+    //   votes >= 500         → +2   (replaces the +1 tier)
+    //   manualReview flag    → alert=true, bypasses threshold check
+    //
+    // Combination rule (signal/noise gate):
+    //   A hit  → always contributes score + marks combinationFlag
+    //   B hit  → score only when priceAnomaly flag is set (discount>=40 or absurd ratio)
+    //   C hit  → score only when (A or B hit is already present) or priceAnomaly is set
+    //   Unpaired C alone → score contribution suppressed
+    const GlitchAlertModule = (function () {
+
+        // ── Sensitivity cutoffs ──────────────────────────────────────────────
+        const SENSITIVITY_THRESHOLD = { low: 6, medium: 4, high: 2 };
+
+        // ── Dedup store key ──────────────────────────────────────────────────
+        const DEDUP_KEY = 'sdPlus_seen_alerts';
+        const DEDUP_CAP = 500; // FIFO eviction when store exceeds this size
+
+        // ── Dedup store helpers ───────────────────────────────────────────────
+        // Storage idiom mirrors SettingsModule: GM_getValue/GM_setValue with manual JSON.
+        // Falls back to localStorage if GM storage is unavailable (should be rare under TM).
+
+        function _loadStore() {
+            try {
+                let raw = null;
+                if (typeof GM_getValue === 'function') raw = GM_getValue(DEDUP_KEY);
+                if (!raw) {
+                    try { raw = localStorage.getItem(DEDUP_KEY); } catch { /* blocked */ }
+                }
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    // Expect an object { ids: [...] } where ids is a FIFO array of string threadIds.
+                    if (parsed && Array.isArray(parsed.ids)) return parsed;
+                }
+            } catch { /* corrupt store — reset */ }
+            return { ids: [] };
+        }
+
+        function _saveStore(store) {
+            try {
+                const json = JSON.stringify(store);
+                if (typeof GM_setValue === 'function') GM_setValue(DEDUP_KEY, json);
+                try { localStorage.setItem(DEDUP_KEY, json); } catch { /* blocked */ }
+            } catch { /* ignore */ }
+        }
+
+        /**
+         * Returns true if threadId has already triggered an alert (persisted across reloads).
+         * @param {string|number} threadId
+         */
+        function hasAlerted(threadId) {
+            if (threadId == null) return false;
+            const store = _loadStore();
+            return store.ids.includes(String(threadId));
+        }
+
+        /**
+         * Records that threadId has alerted. Evicts oldest entry when store exceeds DEDUP_CAP.
+         * @param {string|number} threadId
+         */
+        function markAlerted(threadId) {
+            if (threadId == null) return;
+            const id = String(threadId);
+            const store = _loadStore();
+            if (store.ids.includes(id)) return; // already present — idempotent
+            store.ids.push(id);
+            // FIFO eviction: drop oldest entries when over cap
+            if (store.ids.length > DEDUP_CAP) {
+                store.ids = store.ids.slice(store.ids.length - DEDUP_CAP);
+            }
+            _saveStore(store);
+        }
+
+        // ── Keyword matching ──────────────────────────────────────────────────
+        /**
+         * Returns the highest keyword tier hit in titleText, or null.
+         * Checks Tier A first, then B, then C.
+         * titleText must already be .toLowerCase().
+         * @param {string} titleText
+         * @param {object} watchlist  { A: string[], B: string[], C: string[] }
+         * @returns {{ tier: 'A'|'B'|'C', terms: string[] }|null}
+         */
+        function _matchKeywords(titleText, watchlist) {
+            if (!titleText || !watchlist) return null;
+            const hits = { A: [], B: [], C: [] };
+            for (const tier of ['A', 'B', 'C']) {
+                const terms = watchlist[tier] || [];
+                for (const term of terms) {
+                    if (titleText.includes(term.toLowerCase())) hits[tier].push(term);
+                }
+            }
+            // Return the structured hit object even if multiple tiers hit
+            const anyHit = hits.A.length || hits.B.length || hits.C.length;
+            return anyHit ? hits : null;
+        }
+
+        // ── Core detector ─────────────────────────────────────────────────────
+        /**
+         * Evaluates a deal card for glitch/home-run signals.
+         * Pure function — no DOM writes, no side effects.
+         *
+         * @param {object} el        getDealData() return value for the card
+         * @param {object} apiDeal   DataModule.lookup(threadId) result (may be undefined)
+         * @param {object} settings  SettingsModule.getSettings() result
+         * @returns {{
+         *   alert: boolean,
+         *   score: number,
+         *   tier: 'A'|'B'|'C'|null,
+         *   reasons: string[],
+         *   manualReview: boolean
+         * }}
+         */
+        function evaluateDealAnomaly(el, apiDeal, settings) {
+            const NO_ALERT = { alert: false, score: 0, tier: null, reasons: [], manualReview: false };
+
+            // ── Exclusion gate ────────────────────────────────────────────────
+            // Skip ads and cards with no parsed data.
+            if (!el || el.isPromoted || !el.hasData) return NO_ALERT;
+
+            const reasons = [];
+            let score = 0;
+            let manualReview = false;
+            let priceAnomaly = false; // set by price signals; gates B/C keyword contribution
+
+            // ── Price signal: fail-OPEN guard ─────────────────────────────────
+            // If either price is unparseable (NaN), do NOT coerce to 0 — that fabricates
+            // false "free" / extreme-ratio signals. Instead, flag manualReview and return
+            // early with an alert so a human can inspect the card.
+            const currentPrice = el.currentPrice;
+            const originalPrice = el.originalPrice;
+            const currentBad = isNaN(currentPrice);
+            const originalBad = isNaN(originalPrice);
+
+            if (currentBad || originalBad) {
+                reasons.push('unparseable price — needs manual review');
+                return { alert: true, score: 0, tier: null, reasons, manualReview: true };
+            }
+
+            // ── Price anomaly signals ──────────────────────────────────────────
+            const percent = el.percent || 0;
+
+            if (percent >= 70) {
+                score += 2;
+                priceAnomaly = true;
+                reasons.push(`extreme discount: ${percent}% off`);
+            } else if (percent >= 40) {
+                // Not enough alone for priceAnomaly threshold but still anomalous for B-tier pairing
+                priceAnomaly = true;
+            }
+
+            const absurdRatio = (originalPrice > 100 && currentPrice <= 15) ||
+                (originalPrice > 0 && currentPrice / originalPrice < 0.1);
+            if (absurdRatio) {
+                score += 3;
+                priceAnomaly = true;
+                reasons.push(`absurd price ratio: $${currentPrice} vs $${originalPrice}`);
+            }
+
+            // ── API signals ────────────────────────────────────────────────────
+            // isFireDeal / isPopularDeal are optional API fields (not in every endpoint).
+            // Use defensive access — they may not exist on all deal objects.
+            if (apiDeal) {
+                if (apiDeal.isFireDeal) {
+                    score += 1;
+                    reasons.push('API: isFireDeal');
+                }
+                if (apiDeal.isPopularDeal) {
+                    score += 0.5;
+                    reasons.push('API: isPopularDeal');
+                }
+            }
+
+            // ── Vote signal ────────────────────────────────────────────────────
+            const votes = el.votes || 0;
+            if (votes >= 500) {
+                score += 2;
+                reasons.push(`high votes: ${votes}`);
+            } else if (votes >= 200) {
+                score += 1;
+                reasons.push(`notable votes: ${votes}`);
+            }
+
+            // ── Keyword signals ────────────────────────────────────────────────
+            const titleText = el.titleText || ''; // already .toLowerCase() per getDealData
+            const watchlist = (settings && settings.glitchKeywords) || ConstantsModule.DEFAULTS.glitchKeywords;
+            const keywordHits = _matchKeywords(titleText, watchlist);
+
+            let topTier = null; // highest tier that contributed to score
+
+            if (keywordHits) {
+                // Tier A: always contributes (×3)
+                if (keywordHits.A && keywordHits.A.length) {
+                    score += 3;
+                    topTier = 'A';
+                    reasons.push(`Tier-A keyword: "${keywordHits.A.join('", "')}"`);
+                }
+
+                // Tier B: only when priceAnomaly is set (×1.5)
+                if (keywordHits.B && keywordHits.B.length) {
+                    if (priceAnomaly) {
+                        score += 1.5;
+                        if (!topTier || topTier > 'B') topTier = 'B'; // A < B alphabetically, so keep A
+                        reasons.push(`Tier-B keyword (paired): "${keywordHits.B.join('", "')}"`);
+                    } else {
+                        reasons.push(`Tier-B keyword (unpaired — no price anomaly, not scored): "${keywordHits.B.join('", "')}"`);
+                    }
+                }
+
+                // Tier C: only when (A or B already hit) or priceAnomaly (×0.5)
+                // "Unpaired C alone cannot alert."
+                if (keywordHits.C && keywordHits.C.length) {
+                    const cPaired = (topTier === 'A' || topTier === 'B') || priceAnomaly;
+                    if (cPaired) {
+                        score += 0.5;
+                        if (!topTier) topTier = 'C';
+                        reasons.push(`Tier-C keyword (paired): "${keywordHits.C.join('", "')}"`);
+                    } else {
+                        reasons.push(`Tier-C keyword (suppressed — no A/B hit or price anomaly): "${keywordHits.C.join('", "')}"`);
+                    }
+                }
+            }
+
+            // ── Alert decision ─────────────────────────────────────────────────
+            const sensitivity = (settings && settings.glitchSensitivity) || 'medium';
+            const threshold = SENSITIVITY_THRESHOLD[sensitivity] ?? SENSITIVITY_THRESHOLD.medium;
+
+            // Tier A always alerts regardless of score/threshold.
+            // Otherwise, check the weighted score against the sensitivity threshold.
+            const alertByTier = topTier === 'A';
+            const alertByScore = score >= threshold;
+            const alert = alertByTier || alertByScore;
+
+            return {
+                alert,
+                score: Math.round(score * 10) / 10, // 1 decimal place
+                tier: topTier,
+                reasons,
+                manualReview
+            };
+        }
+
+        // ── Built-in self-test fixture runner ─────────────────────────────────
+        /**
+         * Run all built-in fixtures and log results to console.
+         * Returns a summary object: { passed: number, failed: number, results: [...] }.
+         */
+        function runSelfTest() {
+            const defaultSettings = ConstantsModule.DEFAULTS;
+            const results = [];
+
+            function assert(label, verdict, checks) {
+                const pass = Object.entries(checks).every(([k, v]) => {
+                    const actual = verdict[k];
+                    const ok = JSON.stringify(actual) === JSON.stringify(v) ||
+                        (typeof v === 'boolean' && actual === v) ||
+                        (typeof v === 'number' && Math.abs(actual - v) < 0.01);
+                    if (!ok) {
+                        console.warn(`[sdPlus.testAnomaly] FAIL "${label}" — ${k}: expected ${JSON.stringify(v)}, got ${JSON.stringify(actual)}`);
+                    }
+                    return ok;
+                });
+                results.push({ label, pass, verdict });
+                console.log(`[sdPlus.testAnomaly] ${pass ? 'PASS' : 'FAIL'} — ${label}`, verdict);
+                return pass;
+            }
+
+            // Fixture 1: Tier-A always-alert (glitch keyword)
+            assert('Tier-A always-alert', evaluateDealAnomaly(
+                { titleText: 'dewalt drill price glitch $5', currentPrice: 5, originalPrice: 200, percent: 97, votes: 50, isPromoted: false, hasData: true },
+                undefined, defaultSettings
+            ), { alert: true, tier: 'A' });
+
+            // Fixture 2: Unpaired Tier-C no-alert (clearance alone, no price anomaly)
+            assert('Unpaired Tier-C no-alert', evaluateDealAnomaly(
+                { titleText: 'clearance sale towels $12', currentPrice: 12, originalPrice: 15, percent: 20, votes: 5, isPromoted: false, hasData: true },
+                undefined, defaultSettings
+            ), { alert: false, tier: null });
+
+            // Fixture 3: Tier-B with price anomaly → alert
+            assert('Tier-B + price anomaly → alert', evaluateDealAnomaly(
+                { titleText: 'milwaukee drill set 75% off', currentPrice: 25, originalPrice: 200, percent: 87, votes: 30, isPromoted: false, hasData: true },
+                undefined, defaultSettings
+            ), { alert: true });
+
+            // Fixture 4: Tier-B without price anomaly → no alert (medium sensitivity, score=1.5 < threshold 4)
+            assert('Tier-B without price anomaly → no alert', evaluateDealAnomaly(
+                { titleText: 'milwaukee branded mug $12', currentPrice: 12, originalPrice: 14, percent: 14, votes: 10, isPromoted: false, hasData: true },
+                undefined, defaultSettings
+            ), { alert: false });
+
+            // Fixture 5: Unparseable price → manualReview alert
+            assert('Unparseable price → manualReview', evaluateDealAnomaly(
+                { titleText: 'mystery item', currentPrice: NaN, originalPrice: 100, percent: 0, votes: 0, isPromoted: false, hasData: true },
+                undefined, defaultSettings
+            ), { alert: true, manualReview: true });
+
+            // Fixture 6: isPromoted → no-alert
+            assert('isPromoted → no-alert', evaluateDealAnomaly(
+                { titleText: 'price glitch sponsored', currentPrice: 1, originalPrice: 500, percent: 99, votes: 100, isPromoted: true, hasData: true },
+                undefined, defaultSettings
+            ), { alert: false });
+
+            // Fixture 7: Dedup round-trip
+            const testThreadId = '__sdplus_selftest__' + Date.now();
+            const pre = hasAlerted(testThreadId);
+            markAlerted(testThreadId);
+            const post = hasAlerted(testThreadId);
+            const dedupPass = pre === false && post === true;
+            results.push({ label: 'dedup round-trip', pass: dedupPass, verdict: { pre, post } });
+            console.log(`[sdPlus.testAnomaly] ${dedupPass ? 'PASS' : 'FAIL'} — dedup round-trip`, { pre, post });
+
+            const passed = results.filter(r => r.pass).length;
+            const failed = results.length - passed;
+            console.log(`[sdPlus.testAnomaly] ${passed}/${results.length} passed`);
+            return { passed, failed, results };
+        }
+
+        return {
+            evaluateDealAnomaly,
+            hasAlerted,
+            markAlerted,
+            runSelfTest,
+            // Expose for direct console testing (see T1 self-test hook)
+            _matchKeywords,
+            SENSITIVITY_THRESHOLD
+        };
+    })();
+
+    // ============================================
     // MODULE: Sorting
     // ============================================
     function SortingModule(context) {
@@ -1667,6 +2028,18 @@
                 // v33.0.0: API deal map + a layout/selector probe (call sdPlus.diag()) so we can
                 // inspect the live Nuxt card without pasting fragile console snippets.
                 data: context.data,
+                // v33.1.0: Glitch alert detection self-test hooks (T1)
+                // sdPlus.testAnomaly(fakeEl, fakeApiDeal) — score one card manually
+                // sdPlus.runSelfTest()                    — run all built-in fixtures
+                // sdPlus.glitch                          — module access (hasAlerted, markAlerted, etc.)
+                glitch: GlitchAlertModule,
+                testAnomaly: (fakeEl, fakeApiDeal) => {
+                    const s = context.settings.getSettings();
+                    const result = GlitchAlertModule.evaluateDealAnomaly(fakeEl, fakeApiDeal, s);
+                    console.log('[sdPlus.testAnomaly]', result);
+                    return result;
+                },
+                runSelfTest: () => GlitchAlertModule.runSelfTest(),
                 diag: () => {
                     try {
                         const card = document.querySelector('[data-threadid].isGold') || document.querySelector('[data-threadid]');
