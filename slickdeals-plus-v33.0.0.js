@@ -815,6 +815,10 @@
                                         <div class="control-row"><span>Diff Color:</span><input type="color" data-setting="colorDiffBG"></div>
                                         <div class="control-row"><span>Gold Color:</span><input type="color" data-setting="colorBothBG"></div>
                                     </div></div>
+                                    <div class="sd-plus-section collapsed"><div class="sd-plus-header">Glitch Alerts <span class="arrow">&#9660;</span></div><div class="sd-plus-content">
+                                        <label class="switch-row"><span>Enable Glitch Alerts</span><input type="checkbox" data-setting="glitchAlerts" class="sd-switch-input"><span class="sd-switch-slider"></span></label>
+                                        <div class="control-group"><span>Sensitivity:</span><select data-setting="glitchSensitivity" class="sd-plus-select"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+                                    </div></div>
                                     <div class="sd-plus-footer"><button id="sdPlusClearFiltersButton" class="sd-plus-clear-btn">Clear Filters</button><button id="sdPlusResetButton">Reset All</button></div>
                                     <div class="sd-plus-button-group" style="margin-top:5px;display:flex;justify-content:space-between;"><button id="sdPlusExportButton">Export</button><button id="sdPlusImportButton">Import</button><button id="sdPlusDebugButton" style="background-color:#2196f3;">Debug</button></div>
                                 </div>
@@ -1142,7 +1146,9 @@
                 // Class-agnostic highlight: the highlight* classes are added to the processed card,
                 // which always carries data-sdp-processed. This survives card-class renames (the
                 // Nuxt migration broke the old `.dealCard.highlight*` form).
-                let css = `[data-sdp-processed].highlightRating{background:${cR}!important}[data-sdp-processed].highlightDiff{background:${cD}!important}[data-sdp-processed].highlightBoth{background:${cB}!important}`;
+                // sdp-glitch-alert sits on the <li> wrapper (or card itself for wrapper-less slots)
+                // and uses a loud red/orange left-border + background to distinguish from gold/diff.
+                let css = `[data-sdp-processed].highlightRating{background:${cR}!important}[data-sdp-processed].highlightDiff{background:${cD}!important}[data-sdp-processed].highlightBoth{background:${cB}!important}.sdp-glitch-alert{background:#fff3e0!important;outline:3px solid #e53935!important;outline-offset:-2px}`;
 
                 if (s.hideFeedAds) {
                     css += ConstantsModule.SELECTORS.ads.join(',') + '{display:none!important}';
@@ -1359,6 +1365,47 @@
                 }
                 wrapper.classList.toggle('sd-plus-hide', shouldHide);
                 wrapper.style.display = shouldHide ? 'none' : '';
+
+                // v33.1.0 — Glitch/home-run alert (T2 wiring)
+                // Gate: entirely inert when glitchAlerts is off (default false) — zero
+                // behavioral change to v33 with the feature disabled.
+                if (s.glitchAlerts) {
+                    try {
+                        // threadId is NOT on the el object — resolve it here at the call site
+                        // (same three-way lookup getDealData uses internally).
+                        const threadId = card.dataset?.threadid
+                            || card.querySelector?.('[data-threadid]')?.dataset.threadid
+                            || card.closest?.('[data-threadid]')?.dataset.threadid;
+                        const apiDeal = threadId ? context.data?.lookup(threadId) : undefined;
+                        const verdict = GlitchAlertModule.evaluateDealAnomaly(el, apiDeal, s);
+
+                        // Card highlight: applied on every pass when alert — no dedup here;
+                        // only the intrusive toast is deduped (re-highlighting is harmless).
+                        wrapper.classList.toggle('sdp-glitch-alert', verdict.alert);
+
+                        // Toast: fire only once per threadId across reloads (dedup via GM store).
+                        if (verdict.alert && threadId && !GlitchAlertModule.hasAlerted(threadId)) {
+                            GlitchAlertModule.markAlerted(threadId);
+                            // Build the message: keep raw title from el.titleEl text
+                            // (el.titleText is already .toLowerCase() — use the DOM node for display).
+                            const displayTitle = el.titleEl
+                                ? (el.titleEl.innerText || el.titleEl.textContent || '').trim().slice(0, 60)
+                                : '(unknown deal)';
+                            // Top reason(s): first two from verdict.reasons that don't start with
+                            // "Tier-" unpaired/suppressed — keep the useful ones.
+                            const topReasons = verdict.reasons
+                                .filter(r => !r.includes('unpaired') && !r.includes('suppressed'))
+                                .slice(0, 2)
+                                .join('; ');
+                            const msg = verdict.manualReview
+                                ? `Possible glitch — review: ${displayTitle}${topReasons ? ' (' + topReasons + ')' : ''}`
+                                : `Glitch/home-run deal: ${displayTitle}${topReasons ? ' (' + topReasons + ')' : ''}`;
+                            ToastModule.show(msg, verdict.manualReview ? 'warning' : 'success', 6000);
+                        }
+                    } catch (e) {
+                        log.debug('glitch alert eval error:', e);
+                    }
+                }
 
                 processLinksInCard(card);
 
@@ -2011,7 +2058,7 @@
             });
 
             context.eventBus.on('settingsChanged', ({ key }) => {
-                const reprocessKeys = ['hidePromoted', 'freeOnly', 'goldTierOnly', 'highlightRating', 'highlightDiff', 'bypassRedirects', 'showDiff', 'minPrice', 'maxPrice', 'excludeKeywords', 'includeKeywords'];
+                const reprocessKeys = ['hidePromoted', 'freeOnly', 'goldTierOnly', 'highlightRating', 'highlightDiff', 'bypassRedirects', 'showDiff', 'minPrice', 'maxPrice', 'excludeKeywords', 'includeKeywords', 'glitchAlerts', 'glitchSensitivity'];
                 if (reprocessKeys.includes(key) || key === 'all') {
                     context.processing.processAllCards(true).then(() => context.sorting.applySorting());
                 } else if (key === 'sortBy') {
